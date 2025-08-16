@@ -2,11 +2,22 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"hackload/cmd/setup"
 	"hackload/internal/config"
 	"hackload/internal/dependencies"
+	"hackload/internal/ports"
+
+	"github.com/gorilla/mux"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -35,10 +46,97 @@ func main() {
 		return
 	}
 
-	if err := deps.InitRiverClient(conf.RiverMaxWorkers); err != nil {
-		slog.Error("unable to init river client", "error", err)
-		return
-	}
+	// if err := deps.InitRiverClient(conf.RiverMaxWorkers); err != nil {
+	// 	slog.Error("unable to init river client", "error", err)
+	// 	return
+	// }
 
 	_ = deps
+
+	router := mux.NewRouter()
+
+	ports.HandlerWithOptions(ports.NewHttpServer(), ports.GorillaServerOptions{
+		BaseRouter:  router,
+		Middlewares: []ports.MiddlewareFunc{},
+	})
+
+	//////////////
+
+	// Setup server
+
+	server := &http.Server{
+		Handler: router,
+		Addr:    fmt.Sprintf(":%s", conf.API.Port),
+	}
+
+	mainCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	g, gCtx := errgroup.WithContext(mainCtx)
+
+	// HTTP Server goroutine
+	g.Go(func() error {
+		slog.Info("starting HTTP server", "address", server.Addr)
+
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("HTTP server failed: %w", err)
+		}
+
+		slog.Info("HTTP server stopped accepting connections")
+		return nil
+	})
+
+	// Signal handler goroutine
+	g.Go(func() error {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		defer signal.Stop(c)
+
+		select {
+		case sig := <-c:
+			slog.Info("received shutdown signal", "signal", sig)
+			return fmt.Errorf("received signal: %s", sig)
+		case <-gCtx.Done():
+			return gCtx.Err()
+		}
+	})
+
+	// HTTP Server shutdown handler goroutine
+	g.Go(func() error {
+		<-gCtx.Done()
+
+		shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 20*time.Second)
+		defer shutdownRelease()
+
+		slog.Info("shutting down HTTP server")
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("HTTP server shutdown failed: %w", err)
+		}
+
+		return nil
+	})
+
+	// // RiverQueue
+	// g.Go(func() error {
+	// 	slog.Info("starting riverqueue")
+	// 	if err := deps.RiverClient.Start(gCtx); err != nil {
+	// 		return err
+	// 	}
+
+	// 	<-gCtx.Done()
+
+	// 	slog.Info("shutting down riverqueue")
+	// 	if err := deps.RiverClient.Stop(context.Background()); err != nil {
+	// 		return err
+	// 	}
+
+	// 	slog.Info("riverqueue stopped")
+
+	// 	return nil
+	// })
+
+	// Wait for all goroutines to complete
+	if err := g.Wait(); err != nil {
+		slog.Error("application terminated", "error", err)
+	}
 }
