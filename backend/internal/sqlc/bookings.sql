@@ -62,3 +62,21 @@ WHERE id = sqlc.arg(booking_id)
 INSERT INTO booking_orders (booking_id, order_id, status)
 VALUES (sqlc.arg(booking_id), sqlc.arg(order_id), sqlc.arg(status))
 ;
+
+-- name: UpdateBookingPaymentStatus :exec
+UPDATE booking_payments 
+SET status = sqlc.arg(status)
+WHERE order_id = sqlc.arg(order_id)
+;
+
+-- name: GetBookingByPaymentOrderID :one
+SELECT b.* FROM bookings b
+JOIN booking_payments bp ON b.id = bp.booking_id
+WHERE bp.order_id = sqlc.arg(order_id)
+;
+
+-- name: UpdateBookingOrderStatus :exec
+UPDATE booking_orders 
+SET status = sqlc.arg(status)
+WHERE booking_id = sqlc.arg(booking_id)
+;

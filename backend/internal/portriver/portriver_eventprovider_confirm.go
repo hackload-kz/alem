@@ -129,6 +129,15 @@ func (w *ConfirmBookingWorker) Work(ctx context.Context, job *river.Job[ConfirmB
 		return fmt.Errorf("failed to submit order, status: %d", submitResp.StatusCode)
 	}
 
+	// Update booking order status to SUBMITTED
+	err = qtx.UpdateBookingOrderStatus(ctx, sqlc.UpdateBookingOrderStatusParams{
+		Status:    stringPtr("SUBMITTED"),
+		BookingID: booking.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update booking order status to SUBMITTED: %w", err)
+	}
+
 	// 7. Confirm order
 	confirmResp, err := w.EventProvider.ConfirmOrder(ctx, orderID)
 	if err != nil {
@@ -139,13 +148,13 @@ func (w *ConfirmBookingWorker) Work(ctx context.Context, job *river.Job[ConfirmB
 		return fmt.Errorf("failed to confirm order, status: %d", confirmResp.StatusCode)
 	}
 
-	// 8. Update booking status to CONFIRMED
-	err = qtx.UpdateBookingStatus(ctx, sqlc.UpdateBookingStatusParams{
-		Status:    "CONFIRMED",
+	// Update booking order status to CONFIRMED
+	err = qtx.UpdateBookingOrderStatus(ctx, sqlc.UpdateBookingOrderStatusParams{
+		Status:    stringPtr("CONFIRMED"),
 		BookingID: booking.ID,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update booking status: %w", err)
+		return fmt.Errorf("failed to update booking order status to CONFIRMED: %w", err)
 	}
 
 	// 9. Update all seats status to SOLD

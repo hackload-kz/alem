@@ -20,10 +20,11 @@ type HttpServer struct {
 	riverClient *river.Client[*sql.Tx]
 }
 
-func NewHttpServer(queries *sqlc.Queries, db *sql.DB) ServerInterface {
+func NewHttpServer(queries *sqlc.Queries, db *sql.DB, riverClient *river.Client[*sql.Tx]) ServerInterface {
 	return &HttpServer{
-		queries: queries,
-		db:      db,
+		queries:     queries,
+		db:          db,
+		riverClient: riverClient,
 	}
 }
 
@@ -272,19 +273,69 @@ func (s *HttpServer) NotifyPaymentFailed(w http.ResponseWriter, r *http.Request,
 // Принимать уведомления от платежного шлюза
 // (POST /api/payments/notifications)
 func (s *HttpServer) OnPaymentUpdates(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented") // TODO: Implement
 }
 
 // Уведомить сервис, что платеж успешно проведен
 // (GET /api/payments/success)
 func (s *HttpServer) NotifyPaymentCompleted(w http.ResponseWriter, r *http.Request, params NotifyPaymentCompletedParams) {
-	/*
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		http.Error(w, "Could not start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
 
-		1. Изменить статус booking_payments на SUCCESS
-		2. Изменить статуc bookings на CONFIRMED
-		3. TicketProvider Confirm Order -> Поменять статус мест на SOLD
+	qtx := s.queries.WithTx(tx)
 
-	*/
+	// 1. Update booking_payments status to SUCCESS
+	err = qtx.UpdateBookingPaymentStatus(r.Context(), sqlc.UpdateBookingPaymentStatusParams{
+		Status:  stringPtr("SUCCESS"),
+		OrderID: fmt.Sprintf("%d", params.OrderId),
+	})
+	if err != nil {
+		fmt.Printf("ERROR: failed to update payment status: %v\n", err)
+		http.Error(w, "Failed to update payment status", http.StatusInternalServerError)
+		return
+	}
+
+	// 2. Get booking by payment order ID
+	booking, err := qtx.GetBookingByPaymentOrderID(r.Context(), fmt.Sprintf("%d", params.OrderId))
+	if err != nil {
+		fmt.Printf("ERROR: failed to get booking by payment order ID: %v\n", err)
+		http.Error(w, "Booking not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Update booking status to CONFIRMED
+	err = qtx.UpdateBookingStatus(r.Context(), sqlc.UpdateBookingStatusParams{
+		Status:    "CONFIRMED",
+		BookingID: booking.ID,
+	})
+	if err != nil {
+		fmt.Printf("ERROR: failed to update booking status: %v\n", err)
+		http.Error(w, "Failed to update booking status", http.StatusInternalServerError)
+		return
+	}
+
+	// Commit database changes first
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "Could not commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. Trigger ConfirmBookingWorker to handle EventProvider confirmation and seat updates
+	if _, err = s.riverClient.Insert(r.Context(), portriver.ConfirmBookingArgs{
+		BookingID: booking.ID,
+	}, nil); err != nil {
+		fmt.Printf("ERROR: failed to queue ConfirmBookingWorker: %v\n", err)
+		// Don't fail the request - payment was already processed successfully
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
 
 // Получить список мест

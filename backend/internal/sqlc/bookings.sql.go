@@ -100,6 +100,26 @@ func (q *Queries) GetBooking(ctx context.Context, bookingID int64) (Booking, err
 	return i, err
 }
 
+const getBookingByPaymentOrderID = `-- name: GetBookingByPaymentOrderID :one
+;
+
+SELECT b.id, b.user_id, b.event_id, b.status FROM bookings b
+JOIN booking_payments bp ON b.id = bp.booking_id
+WHERE bp.order_id = ?1
+`
+
+func (q *Queries) GetBookingByPaymentOrderID(ctx context.Context, orderID string) (Booking, error) {
+	row := q.db.QueryRowContext(ctx, getBookingByPaymentOrderID, orderID)
+	var i Booking
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EventID,
+		&i.Status,
+	)
+	return i, err
+}
+
 const getBookingSeats = `-- name: GetBookingSeats :many
 ;
 
@@ -208,6 +228,42 @@ type InsertBookingSeatParams struct {
 
 func (q *Queries) InsertBookingSeat(ctx context.Context, arg InsertBookingSeatParams) error {
 	_, err := q.db.ExecContext(ctx, insertBookingSeat, arg.UserID, arg.BookingID, arg.SeatID)
+	return err
+}
+
+const updateBookingOrderStatus = `-- name: UpdateBookingOrderStatus :exec
+;
+
+UPDATE booking_orders 
+SET status = ?1
+WHERE booking_id = ?2
+`
+
+type UpdateBookingOrderStatusParams struct {
+	Status    *string
+	BookingID int64
+}
+
+func (q *Queries) UpdateBookingOrderStatus(ctx context.Context, arg UpdateBookingOrderStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookingOrderStatus, arg.Status, arg.BookingID)
+	return err
+}
+
+const updateBookingPaymentStatus = `-- name: UpdateBookingPaymentStatus :exec
+;
+
+UPDATE booking_payments 
+SET status = ?1
+WHERE order_id = ?2
+`
+
+type UpdateBookingPaymentStatusParams struct {
+	Status  *string
+	OrderID string
+}
+
+func (q *Queries) UpdateBookingPaymentStatus(ctx context.Context, arg UpdateBookingPaymentStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookingPaymentStatus, arg.Status, arg.OrderID)
 	return err
 }
 

@@ -65,7 +65,7 @@ func main() {
 
 	router := mux.NewRouter()
 
-	ports.HandlerWithOptions(ports.NewHttpServer(queries, deps.DB), ports.GorillaServerOptions{
+	ports.HandlerWithOptions(ports.NewHttpServer(queries, deps.DB, deps.RiverClient), ports.GorillaServerOptions{
 		BaseRouter: router,
 		Middlewares: []ports.MiddlewareFunc{
 			middleware.AuthenticationMiddleware(deps.AuthenticationService),
