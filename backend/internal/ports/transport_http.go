@@ -117,7 +117,34 @@ func (s *HttpServer) CreateBooking(w http.ResponseWriter, r *http.Request) {
 // Отменить бронирование
 // (PATCH /api/bookings/cancel)
 func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented") // TODO: Implement
+	session, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		fmt.Println("ERROR: middleware.GetUserFromContext: false")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var req CancelBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Println("ERROR: json.NewDecoder:", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	// !!!
+	// TODO: Обработать логику для статуса PAYMENT_INITIATED - возможно нужно отменить платеж
+	// !!!
+	_, err := s.queries.CancelBooking(r.Context(), sqlc.CancelBookingParams{
+		BookingID: req.BookingId,
+		UserID:    session.UserID,
+	})
+	if err != nil {
+		fmt.Println("ERROR: s.queries.CancelBooking:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Инициировать платеж для бронирования

@@ -7,7 +7,25 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
+
+const cancelBooking = `-- name: CancelBooking :execresult
+UPDATE bookings 
+SET status = 'CANCELLED'
+WHERE id = ?1 
+  AND user_id = ?2
+  AND status IN ('CREATED', 'PAYMENT_INITIATED')
+`
+
+type CancelBookingParams struct {
+	BookingID int64
+	UserID    int64
+}
+
+func (q *Queries) CancelBooking(ctx context.Context, arg CancelBookingParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, cancelBooking, arg.BookingID, arg.UserID)
+}
 
 const createBooking = `-- name: CreateBooking :one
 INSERT INTO bookings (user_id, event_id, status)

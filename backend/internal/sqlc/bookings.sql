@@ -19,3 +19,10 @@ group by b.id, b.event_id;
 INSERT INTO bookings (user_id, event_id, status)
 VALUES (sqlc.arg(user_id), sqlc.arg(event_id), 'CREATED')
 RETURNING id;
+
+-- name: CancelBooking :execresult
+UPDATE bookings 
+SET status = 'CANCELLED'
+WHERE id = sqlc.arg(booking_id) 
+  AND user_id = sqlc.arg(user_id)
+  AND status IN ('CREATED', 'PAYMENT_INITIATED');
