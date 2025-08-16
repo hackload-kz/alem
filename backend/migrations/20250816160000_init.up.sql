@@ -56,7 +56,7 @@ create table "bookings" (
     "event_id" integer not null references "events_archive"("id"),
 
     -- статус: CREATED, PAYMENT_INITIATED, CONFIRMED, CANCELLED
-    "status" text default 'CREATED'
+    "status" text not null default 'CREATED'
 );
 
 create table "booking_seats" (

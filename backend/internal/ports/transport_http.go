@@ -5,14 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"hackload/internal/middleware"
+	"hackload/internal/portriver"
 	"hackload/internal/sqlc"
+
+	"github.com/riverqueue/river"
 )
 
 type HttpServer struct {
-	queries *sqlc.Queries
-	db      *sql.DB
+	queries     *sqlc.Queries
+	db          *sql.DB
+	riverClient *river.Client[*sql.Tx]
 }
 
 func NewHttpServer(queries *sqlc.Queries, db *sql.DB) ServerInterface {
@@ -105,6 +110,21 @@ func (s *HttpServer) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	statusEq := "CREATED"
+
+	if _, err = s.riverClient.Insert(
+		r.Context(),
+		portriver.ReleaseSeatsArgs{
+			BookingID: bookingID,
+			StatusEq:  &statusEq,
+		},
+		&river.InsertOpts{ScheduledAt: time.Now().UTC().Add(10 * time.Minute)},
+	); err != nil {
+		fmt.Println("ERROR: s.riverClient.Insert:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	response := CreateBookingResponse{
 		Id: bookingID,
 	}
@@ -134,16 +154,42 @@ func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// !!!
-	// TODO: Обработать логику для статуса PAYMENT_INITIATED - возможно нужно отменить платеж
-	// !!!
-	_, err := s.queries.CancelBooking(r.Context(), sqlc.CancelBookingParams{
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		http.Error(w, "Could not start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	qtx := s.queries.WithTx(tx)
+
+	// 1. GetBooking to verify it exists
+	booking, err := qtx.GetBooking(r.Context(), req.BookingId)
+	if err != nil {
+		return
+	}
+
+	if booking.Status == "PAYMENT_INITIATED" || booking.Status == "CANCELLED" {
+		return
+	}
+
+	if _, err = qtx.CancelBooking(r.Context(), sqlc.CancelBookingParams{
 		BookingID: req.BookingId,
 		UserID:    session.UserID,
-	})
-	if err != nil {
+	}); err != nil {
 		fmt.Println("ERROR: s.queries.CancelBooking:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	/*
+		1. Если CONFIRMED -> Отменить в TicketProvider -> Освободить места
+		2. ЕСЛИ CONFIRMED -> Вернуть деньги в Payment Gateway
+		3. Если PAYMENT_INITIATED -> Освободить места
+	*/
+
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "Could not commit transaction", http.StatusInternalServerError)
 		return
 	}
 
@@ -153,7 +199,12 @@ func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
 // Инициировать платеж для бронирования
 // (PATCH /api/bookings/initiatePayment)
 func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented") // TODO: Implement
+	/*
+		1. Создать платеж в PaymentGateway
+		2. Создать booking_payments с указанным order_id
+		3. Изменить статуст на PAYMENT_INITIATED
+		4. Вернуть URL оплаты
+	*/
 }
 
 // Получить список событий

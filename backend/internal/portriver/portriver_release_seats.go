@@ -45,7 +45,7 @@ func (w *ReleaseSeatsWorker) Work(ctx context.Context, job *river.Job[ReleaseSea
 		return err
 	}
 
-	if job.Args.StatusEq != nil && *job.Args.StatusEq == *booking.Status {
+	if job.Args.StatusEq != nil && *job.Args.StatusEq != booking.Status {
 		return nil
 	}
 
