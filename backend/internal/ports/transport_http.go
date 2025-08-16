@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -347,6 +348,9 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
 		return
 	}
+
+	lol, _ := io.ReadAll(resp.Body)
+	fmt.Printf("resp: %#v\n", string(lol))
 
 	if resp.StatusCode != 200 {
 		fmt.Printf("ERROR: payment gateway returned status: %d\n", resp.StatusCode)
