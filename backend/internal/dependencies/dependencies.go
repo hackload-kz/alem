@@ -5,6 +5,8 @@ import (
 	"database/sql"
 
 	"hackload/internal/config"
+	"hackload/internal/service"
+	"hackload/internal/sqlc"
 	"hackload/pkg/eventprovider"
 	"hackload/pkg/paymentgateway"
 
@@ -15,12 +17,13 @@ import (
 )
 
 type Dependencies struct {
-	DB             *sql.DB
-	RiverDriver    *riversqlite.Driver
-	RiverWorkers   *river.Workers
-	RiverClient    *river.Client[*sql.Tx]
-	EventProvider  eventprovider.ClientInterface
-	PaymentGateway paymentgateway.ClientInterface
+	DB                    *sql.DB
+	RiverDriver           *riversqlite.Driver
+	RiverWorkers          *river.Workers
+	RiverClient           *river.Client[*sql.Tx]
+	EventProvider         eventprovider.ClientInterface
+	PaymentGateway        paymentgateway.ClientInterface
+	AuthenticationService service.AuthenticationService
 }
 
 func (d *Dependencies) Close() {
@@ -95,4 +98,12 @@ func (d *Dependencies) InitRiverClient(maxWorkers int) error {
 
 	d.RiverClient = riverClient
 	return nil
+}
+
+func WithAuthenticationService() Option {
+	return func(ctx context.Context, d *Dependencies) error {
+		queries := sqlc.New(d.DB)
+		d.AuthenticationService = service.NewAuthenticationService(queries)
+		return nil
+	}
 }

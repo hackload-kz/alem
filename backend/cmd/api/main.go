@@ -14,6 +14,7 @@ import (
 	"hackload/cmd/setup"
 	"hackload/internal/config"
 	"hackload/internal/dependencies"
+	"hackload/internal/middleware"
 	"hackload/internal/ports"
 
 	"github.com/gorilla/mux"
@@ -40,6 +41,7 @@ func main() {
 		ctx,
 		dependencies.WithDB(conf),
 		dependencies.WithRiverQueue(conf),
+		dependencies.WithAuthenticationService(),
 	)
 	if err != nil {
 		slog.Error("unable to get dependencies", "error", err)
@@ -51,13 +53,13 @@ func main() {
 	// 	return
 	// }
 
-	_ = deps
-
 	router := mux.NewRouter()
 
 	ports.HandlerWithOptions(ports.NewHttpServer(), ports.GorillaServerOptions{
-		BaseRouter:  router,
-		Middlewares: []ports.MiddlewareFunc{},
+		BaseRouter: router,
+		Middlewares: []ports.MiddlewareFunc{
+			middleware.AuthenticationMiddleware(deps.AuthenticationService),
+		},
 	})
 
 	//////////////
