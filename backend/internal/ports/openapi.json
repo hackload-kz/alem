@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "https://localhost:8081"
+      "url": "http://localhost:8081"
     }
   ],
   "components": {
@@ -22,9 +22,7 @@
             "default": "false"
           }
         },
-        "required": [
-          "title"
-        ]
+        "required": ["title"]
       },
       "CreateEventResponse": {
         "type": "object",
@@ -34,9 +32,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "id"
-        ]
+        "required": ["id"]
       },
       "ListEventsResponseItem": {
         "type": "object",
@@ -49,10 +45,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "title"
-        ]
+        "required": ["id", "title"]
       },
       "ListEventsResponseItemSeat": {
         "type": "object",
@@ -62,9 +55,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "id"
-        ]
+        "required": ["id"]
       },
       "ListEventsResponse": {
         "type": "array",
@@ -90,10 +81,7 @@
             }
           }
         },
-        "required": [
-          "id",
-          "event_id"
-        ]
+        "required": ["id", "event_id"]
       },
       "ListBookingsResponse": {
         "type": "array",
@@ -109,9 +97,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "event_id"
-        ]
+        "required": ["event_id"]
       },
       "CreateBookingResponse": {
         "type": "object",
@@ -121,9 +107,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "id"
-        ]
+        "required": ["id"]
       },
       "ListSeatsResponseItem": {
         "type": "object",
@@ -142,24 +126,14 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "FREE",
-              "RESERVED",
-              "SOLD"
-            ]
+            "enum": ["FREE", "RESERVED", "SOLD"]
           },
           "price": {
             "type": "string",
             "format": "decimal"
           }
         },
-        "required": [
-          "id",
-          "row",
-          "number",
-          "status",
-          "price"
-        ]
+        "required": ["id", "row", "number", "status", "price"]
       },
       "ListSeatsResponse": {
         "type": "array",
@@ -179,10 +153,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "seat_id",
-          "booking_id"
-        ]
+        "required": ["seat_id", "booking_id"]
       },
       "ReleaseSeatRequest": {
         "type": "object",
@@ -192,9 +163,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "seat_id"
-        ]
+        "required": ["seat_id"]
       },
       "InitiatePaymentRequest": {
         "type": "object",
@@ -204,9 +173,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "booking_id"
-        ]
+        "required": ["booking_id"]
       },
       "CancelBookingRequest": {
         "type": "object",
@@ -216,9 +183,7 @@
             "format": "int64"
           }
         },
-        "required": [
-          "booking_id"
-        ]
+        "required": ["booking_id"]
       },
       "PaymentNotificationPayload": {
         "type": "object",
@@ -249,9 +214,7 @@
   "paths": {
     "/api/events": {
       "get": {
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "operationId": "ListEvents",
         "summary": "Получить список событий",
         "description": "Возвращает список событие при успехе",
@@ -309,9 +272,7 @@
     },
     "/api/bookings": {
       "post": {
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "operationId": "CreateBooking",
         "summary": "Создать бронирование",
         "description": "Создать бронирование для последующего выбора мест на событие",
@@ -339,9 +300,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "operationId": "ListBookings",
         "summary": "Получить список бронирований",
         "description": "Возвращает список бронирований текущего пользователя",
@@ -361,9 +320,7 @@
     },
     "/api/bookings/initiatePayment": {
       "patch": {
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "operationId": "InitiatePayment",
         "summary": "Инициировать платеж для бронирования",
         "description": "Бронирование переходить в ожидания платежа",
@@ -394,9 +351,7 @@
     },
     "/api/bookings/cancel": {
       "patch": {
-        "tags": [
-          "Bookings"
-        ],
+        "tags": ["Bookings"],
         "operationId": "CancelBooking",
         "summary": "Отменить бронирование",
         "description": "Бронирование отменено",
@@ -419,9 +374,7 @@
     },
     "/api/seats": {
       "get": {
-        "tags": [
-          "Seats"
-        ],
+        "tags": ["Seats"],
         "parameters": [
           {
             "in": "query",
@@ -465,9 +418,7 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": [
-                "FREE", "RESERVED", "SOLD"
-              ]
+              "enum": ["FREE", "RESERVED", "SOLD"]
             }
           }
         ],
@@ -490,9 +441,7 @@
     },
     "/api/seats/select": {
       "patch": {
-        "tags": [
-          "Seats"
-        ],
+        "tags": ["Seats"],
         "operationId": "SelectSeat",
         "summary": "Выбрать место для брони",
         "description": "Место становится недоступным для выбора другим пользователям",
@@ -518,9 +467,7 @@
     },
     "/api/seats/release": {
       "patch": {
-        "tags": [
-          "Seats"
-        ],
+        "tags": ["Seats"],
         "operationId": "ReleaseSeat",
         "summary": "Убрать место из брони",
         "description": "Место становится доступным для выбора другим пользователям",
@@ -546,9 +493,7 @@
     },
     "/api/payments/success": {
       "get": {
-        "tags": [
-          "Payments"
-        ],
+        "tags": ["Payments"],
         "operationId": "NotifyPaymentCompleted",
         "summary": "Уведомить сервис, что платеж успешно проведен",
         "description": "Бронь становится подтвержденной и оплаченной",
@@ -572,9 +517,7 @@
     },
     "/api/payments/fail": {
       "get": {
-        "tags": [
-          "Payments"
-        ],
+        "tags": ["Payments"],
         "operationId": "NotifyPaymentFailed",
         "summary": "Уведомить сервис, что платеж неуспешно проведен",
         "description": "Бронь отменяется и места освобождаются, становясь доступными другим пользователям для брони",
@@ -598,9 +541,7 @@
     },
     "/api/payments/notifications": {
       "post": {
-        "tags": [
-          "Payments"
-        ],
+        "tags": ["Payments"],
         "operationId": "OnPaymentUpdates",
         "summary": "Принимать уведомления от платежного шлюза",
         "description": "Принимать уведомления от платежного шлюза",

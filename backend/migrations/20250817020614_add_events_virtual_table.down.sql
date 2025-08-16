@@ -1,0 +1,1 @@
+delete table events_archive_fts;
