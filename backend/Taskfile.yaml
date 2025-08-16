@@ -3,6 +3,11 @@ version: '3'
 dotenv: ['.env']
 
 tasks:
+  cmd:api:
+    desc: Запуск API
+    ignore_error: true
+    cmd: go run ./cmd/api -m ./migrations
+
   migrate:create:
     desc: |
       Создание новой миграции (usage: task migrate:create -- название_миграции)
