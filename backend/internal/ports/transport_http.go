@@ -186,8 +186,26 @@ func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
 	/*
 		1. Если CONFIRMED -> Отменить в TicketProvider -> Освободить места
 		2. ЕСЛИ CONFIRMED -> Вернуть деньги в Payment Gateway
-		3. Если PAYMENT_INITIATED -> Освободить места
 	*/
+	if booking.Status == "CONFIRMED" {
+		// TODO
+	}
+
+	// Если CREATED -> Освободить места
+	if booking.Status == "CONFIRMED" || booking.Status == "CREATED" {
+		if _, err := s.riverClient.Insert(
+			r.Context(),
+			&portriver.ReleaseSeatsArgs{
+				BookingID: req.BookingId,
+				StatusEq:  &booking.Status,
+			},
+			nil,
+		); err != nil {
+			fmt.Println("ERROR: s.riverClient.Insert:", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
 
 	if err = tx.Commit(); err != nil {
 		http.Error(w, "Could not commit transaction", http.StatusInternalServerError)
