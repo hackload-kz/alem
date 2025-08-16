@@ -13,5 +13,5 @@ services:
     # - PAYMENT_PROVIDER_MERCHANT_PASSWORD
     # - PAYMENT_PROVIDER_MERCHANT_ID
     volumes:
-      - ./api_data
-      - ./river_data
+      - ./api_data:/app/api_data
+      - ./river_data:/app/river_data
