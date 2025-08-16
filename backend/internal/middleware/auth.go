@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -40,6 +41,7 @@ func AuthenticationMiddleware(authService service.AuthenticationService) func(ht
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
 					return
 				}
+				fmt.Println("ERROR: authService.GetSession:", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}

@@ -24,36 +24,130 @@ func NewHttpServer(queries *sqlc.Queries, db *sql.DB) ServerInterface {
 
 // Получить список бронирований
 // (GET /api/bookings)
+// Возвращает массив Bookings с массивом seats
+// ```
+// [
+//
+//	{
+//	  "id": 456,
+//	  "event_id": 123,
+//	  "seats": [
+//	    {"id": 789}
+//	  ]
+//	}
+//
+// ]
+// ```
 func (s *HttpServer) ListBookings(w http.ResponseWriter, r *http.Request) {
 	session, ok := middleware.GetUserFromContext(r.Context())
-	fmt.Printf("%#v\n", session)
 	if !ok {
+		fmt.Println("ERROR: middleware.GetUserFromContext: false")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	bookings, err := s.queries.GetBookings(r.Context(), session.UserID)
-	fmt.Printf("%#v, %v\n", bookings, err)
 	if err != nil {
+		fmt.Println("ERROR: s.queries.GetBookings:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
+	response := make(ListBookingsResponse, 0, len(bookings))
 	for _, booking := range bookings {
-		fmt.Printf("%#v\n", booking)
+		var seats []ListEventsResponseItemSeat
+		if err := json.Unmarshal([]byte(booking.Seats), &seats); err != nil {
+			fmt.Println("ERROR: json.Unmarshal seats:", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		item := ListBookingsResponseItem{
+			Id:      booking.ID,
+			EventId: booking.EventID,
+			Seats:   &seats,
+		}
+		response = append(response, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
 
 // Создать бронирование
 // (POST /api/bookings)
+// При создании необходимо возвращать 201
 func (s *HttpServer) CreateBooking(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented") // TODO: Implement
+	session, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		fmt.Println("ERROR: middleware.GetUserFromContext: false")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var req CreateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Println("ERROR: json.NewDecoder:", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	bookingID, err := s.queries.CreateBooking(r.Context(), sqlc.CreateBookingParams{
+		UserID:  session.UserID,
+		EventID: req.EventId,
+	})
+	if err != nil {
+		fmt.Println("ERROR: s.queries.CreateBooking:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response := CreateBookingResponse{
+		Id: bookingID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Отменить бронирование
 // (PATCH /api/bookings/cancel)
 func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented") // TODO: Implement
+	session, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		fmt.Println("ERROR: middleware.GetUserFromContext: false")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var req CancelBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Println("ERROR: json.NewDecoder:", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	// !!!
+	// TODO: Обработать логику для статуса PAYMENT_INITIATED - возможно нужно отменить платеж
+	// !!!
+	_, err := s.queries.CancelBooking(r.Context(), sqlc.CancelBookingParams{
+		BookingID: req.BookingId,
+		UserID:    session.UserID,
+	})
+	if err != nil {
+		fmt.Println("ERROR: s.queries.CancelBooking:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Инициировать платеж для бронирования

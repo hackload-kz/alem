@@ -15,6 +15,17 @@ where 1=1
   and sqlc.arg(user_id) = b.user_id
 group by b.id, b.event_id;
 
+-- name: CreateBooking :one
+INSERT INTO bookings (user_id, event_id, status)
+VALUES (sqlc.arg(user_id), sqlc.arg(event_id), 'CREATED')
+RETURNING id;
+
+-- name: CancelBooking :execresult
+UPDATE bookings 
+SET status = 'CANCELLED'
+WHERE id = sqlc.arg(booking_id) 
+  AND user_id = sqlc.arg(user_id)
+  AND status IN ('CREATED', 'PAYMENT_INITIATED');
 -- name: InsertBookingSeat :exec
 insert into booking_seats (user_id, booking_id, seat_id)
 values (sqlc.arg(user_id), sqlc.arg(booking_id), sqlc.arg(seat_id))
