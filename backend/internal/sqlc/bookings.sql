@@ -26,3 +26,28 @@ SET status = 'CANCELLED'
 WHERE id = sqlc.arg(booking_id) 
   AND user_id = sqlc.arg(user_id)
   AND status IN ('CREATED', 'PAYMENT_INITIATED');
+-- name: InsertBookingSeat :exec
+insert into booking_seats (user_id, booking_id, seat_id)
+values (sqlc.arg(user_id), sqlc.arg(booking_id), sqlc.arg(seat_id))
+;
+
+-- name: DeleteBookingSeat :execrows
+delete from booking_seats 
+where seat_id = sqlc.arg(seat_id)
+  and user_id = sqlc.arg(user_id)
+;
+
+-- name: GetBooking :one
+select * from bookings 
+where id = sqlc.arg(booking_id)
+;
+
+-- name: GetBookingSeats :many
+select seat_id from booking_seats
+where booking_id = sqlc.arg(booking_id)
+;
+
+-- name: DeleteBookingSeats :execrows
+delete from booking_seats 
+where booking_id = sqlc.arg(booking_id)
+;

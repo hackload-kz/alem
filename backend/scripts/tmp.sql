@@ -17,4 +17,4 @@
 --     'FREE'
 -- );
 
-insert into booking_seats (user_id, booking_id, seat_id) values (1, 1, 1);
+-- insert into booking_seats (user_id, booking_id, seat_id) values (1, 1, 1);

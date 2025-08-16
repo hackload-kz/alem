@@ -45,6 +45,91 @@ func (q *Queries) CreateBooking(ctx context.Context, arg CreateBookingParams) (i
 	return id, err
 }
 
+const deleteBookingSeat = `-- name: DeleteBookingSeat :execrows
+;
+
+delete from booking_seats 
+where seat_id = ?1
+  and user_id = ?2
+`
+
+type DeleteBookingSeatParams struct {
+	SeatID int64
+	UserID int64
+}
+
+func (q *Queries) DeleteBookingSeat(ctx context.Context, arg DeleteBookingSeatParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteBookingSeat, arg.SeatID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteBookingSeats = `-- name: DeleteBookingSeats :execrows
+;
+
+delete from booking_seats 
+where booking_id = ?1
+`
+
+func (q *Queries) DeleteBookingSeats(ctx context.Context, bookingID int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteBookingSeats, bookingID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const getBooking = `-- name: GetBooking :one
+;
+
+select id, user_id, event_id, status from bookings 
+where id = ?1
+`
+
+func (q *Queries) GetBooking(ctx context.Context, bookingID int64) (Booking, error) {
+	row := q.db.QueryRowContext(ctx, getBooking, bookingID)
+	var i Booking
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EventID,
+		&i.Status,
+	)
+	return i, err
+}
+
+const getBookingSeats = `-- name: GetBookingSeats :many
+;
+
+select seat_id from booking_seats
+where booking_id = ?1
+`
+
+func (q *Queries) GetBookingSeats(ctx context.Context, bookingID int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getBookingSeats, bookingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var seat_id int64
+		if err := rows.Scan(&seat_id); err != nil {
+			return nil, err
+		}
+		items = append(items, seat_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBookings = `-- name: GetBookings :many
 select
   b.id,
@@ -90,4 +175,20 @@ func (q *Queries) GetBookings(ctx context.Context, userID int64) ([]GetBookingsR
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertBookingSeat = `-- name: InsertBookingSeat :exec
+insert into booking_seats (user_id, booking_id, seat_id)
+values (?1, ?2, ?3)
+`
+
+type InsertBookingSeatParams struct {
+	UserID    int64
+	BookingID int64
+	SeatID    int64
+}
+
+func (q *Queries) InsertBookingSeat(ctx context.Context, arg InsertBookingSeatParams) error {
+	_, err := q.db.ExecContext(ctx, insertBookingSeat, arg.UserID, arg.BookingID, arg.SeatID)
+	return err
 }
