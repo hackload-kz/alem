@@ -1,0 +1,2888 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "PaymentGateway.API | v1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://hub.hackload.kz/"
+    }
+  ],
+  "paths": {
+    "/api/v1/Admin/clear-database": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDataClearResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Admin/status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Metrics/summary": {
+      "get": {
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsSummaryResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsSummaryResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Metrics/payments": {
+      "get": {
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMetricsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMetricsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMetricsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Metrics/system": {
+      "get": {
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemMetricsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemMetricsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemMetricsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Metrics/dashboard": {
+      "get": {
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Metrics/reset": {
+      "post": {
+        "tags": [
+          "Metrics"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetMetricsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetMetricsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetMetricsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentCancel/cancel": {
+      "post": {
+        "tags": [
+          "Payment Cancellation"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCancelRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCancelRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCancelRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentCheck/check": {
+      "post": {
+        "tags": [
+          "Payment Status Check"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCheckRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCheckRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCheckRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentCheck/status": {
+      "get": {
+        "tags": [
+          "Payment Status Check"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": null
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": null
+            }
+          },
+          {
+            "name": "teamSlug",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": null
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": null
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "ru"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResponseDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentConfirm/confirm": {
+      "post": {
+        "tags": [
+          "Payment Confirmation"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentConfirmRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentConfirmRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentConfirmRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentConfirmResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentConfirmResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentConfirmResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentConfirmResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentConfirmResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentForm/render/{paymentId}": {
+      "get": {
+        "tags": [
+          "PaymentForm"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "en"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { },
+              "text/html": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentForm/submit": {
+      "post": {
+        "tags": [
+          "PaymentForm"
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "PaymentId": {
+                    "type": "string"
+                  },
+                  "CardNumber": {
+                    "type": "string"
+                  },
+                  "ExpiryDate": {
+                    "type": "string"
+                  },
+                  "Cvv": {
+                    "type": "string"
+                  },
+                  "CardholderName": {
+                    "type": "string"
+                  },
+                  "Email": {
+                    "type": "string"
+                  },
+                  "Phone": {
+                    "type": "string"
+                  },
+                  "SaveCard": {
+                    "type": "boolean"
+                  },
+                  "TermsAgreement": {
+                    "type": "boolean"
+                  },
+                  "CsrfToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { },
+              "text/html": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentForm/result/{paymentId}": {
+      "get": {
+        "tags": [
+          "PaymentForm"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "success",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "message",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": null
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { },
+              "text/html": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentInit/init": {
+      "post": {
+        "tags": [
+          "Payment Initialization"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentInitRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentInitRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentInitRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentInitResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentInitResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentInitResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentInitResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentInit/session/{paymentId}": {
+      "get": {
+        "tags": [
+          "Payment Initialization"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/PaymentInit/metrics/{teamSlug}": {
+      "get": {
+        "tags": [
+          "Payment Initialization"
+        ],
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/TeamRegistration/register": {
+      "post": {
+        "tags": [
+          "Team Registration"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamRegistrationRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamRegistrationRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamRegistrationRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamRegistrationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamRegistrationResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamRegistrationResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamRegistrationResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/TeamRegistration/status/{teamSlug}": {
+      "get": {
+        "tags": [
+          "Team Registration"
+        ],
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/TeamRegistration/check-availability/{teamSlug}": {
+      "get": {
+        "tags": [
+          "Team Registration"
+        ],
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": { }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminDataClearResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/DatabaseClearStatistics"
+          }
+        }
+      },
+      "AdminStatusResponse": {
+        "type": "object",
+        "properties": {
+          "adminTokenConfigured": {
+            "type": "boolean"
+          },
+          "serviceVersion": {
+            "type": "string"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BankTransactionDetailsDto": {
+        "type": "object",
+        "properties": {
+          "bankTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorizationCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "rrn": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "CancelBankDetailsDto": {
+        "type": "object",
+        "properties": {
+          "bankTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalAuthorizationCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancellationAuthorizationCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "rrn": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "CancelItemDto": {
+        "required": [
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 99999.999,
+            "minimum": 0.001,
+            "type": "number",
+            "format": "double"
+          },
+          "amount": {
+            "maximum": 9223372036854776000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double"
+          },
+          "reason": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "tax": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CancelReceiptDto": {
+        "type": "object",
+        "properties": {
+          "Receipt_FFD_105": { },
+          "Receipt_FFD_12": { },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxation": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "CancellationDetailsDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelledItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CancelledItemDto"
+            },
+            "nullable": true
+          },
+          "wasForced": {
+            "type": "boolean"
+          },
+          "processingDuration": {
+            "pattern": "^-?(\\d+\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "CancelledItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelledQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "cancelledAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "tax": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CheckCardDetailsDto": {
+        "type": "object",
+        "properties": {
+          "cardMask": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardType": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardBrand": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuingBank": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardCountry": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardBin": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "CheckCustomerInfoDto": {
+        "type": "object",
+        "properties": {
+          "customerKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "CheckReceiptDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "content": { },
+          "receiptUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "CheckTransactionDto": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "responseCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorizationCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "rrn": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ConfirmItemDto": {
+        "required": [
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 99999.999,
+            "minimum": 0.001,
+            "type": "number",
+            "format": "double"
+          },
+          "amount": {
+            "maximum": 9223372036854776000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double"
+          },
+          "tax": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ConfirmReceiptDto": {
+        "type": "object",
+        "properties": {
+          "Receipt_FFD_105": { },
+          "Receipt_FFD_12": { },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "ConfirmationDetailsDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfirmedItemDto"
+            },
+            "nullable": true
+          },
+          "processingDuration": {
+            "pattern": "^-?(\\d+\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "ConfirmedItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "confirmedAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tax": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CustomerInfoDto": {
+        "type": "object",
+        "properties": {
+          "customerKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "DatabaseClearStatistics": {
+        "type": "object",
+        "properties": {
+          "deletedPayments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletedTransactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletedOrders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "operationDurationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "clearTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "nullable": true
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "FeeDetailsDto": {
+        "type": "object",
+        "properties": {
+          "processingFee": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "acquirerFee": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "networkFee": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "totalFees": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "feeCurrency": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "MetricsSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalMetrics": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "categories": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "OrderItemDto": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 99999.999,
+            "minimum": 0.001,
+            "type": "number",
+            "format": "double"
+          },
+          "price": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "number",
+            "format": "double"
+          },
+          "amount": {
+            "maximum": 9223372036854776000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double"
+          },
+          "tax": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaymentAmountsDto": {
+        "type": "object",
+        "properties": {
+          "originalAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "authorizedAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "confirmedAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "refundedAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "remainingAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "totalFees": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "PaymentCancelRequestDto": {
+        "required": [
+          "paymentId",
+          "teamSlug",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "maximum": 50000000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/CancelReceiptDto"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CancelItemDto"
+            },
+            "nullable": true
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "teamSlug": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaymentCancelResponseDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancellationType": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "cancelledAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "remainingAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "bankDetails": {
+            "$ref": "#/components/schemas/CancelBankDetailsDto"
+          },
+          "refund": {
+            "$ref": "#/components/schemas/RefundDetailsDto"
+          },
+          "details": {
+            "$ref": "#/components/schemas/CancellationDetailsDto"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentCheckRequestDto": {
+        "required": [
+          "teamSlug",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "orderId": {
+            "maxLength": 36,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "includeTransactions": {
+            "type": "boolean"
+          },
+          "includeCardDetails": {
+            "type": "boolean"
+          },
+          "includeCustomerInfo": {
+            "type": "boolean"
+          },
+          "includeReceipt": {
+            "type": "boolean"
+          },
+          "language": {
+            "maxLength": 2,
+            "minLength": 2,
+            "pattern": "^(ru|en)$",
+            "type": "string"
+          },
+          "teamSlug": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaymentCheckResponseDto": {
+        "type": "object",
+        "properties": {
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentStatusDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": { },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentConfirmRequestDto": {
+        "required": [
+          "paymentId",
+          "teamSlug",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "amount": {
+            "maximum": 50000000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "description": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/ConfirmReceiptDto"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfirmItemDto"
+            },
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "teamSlug": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaymentConfirmResponseDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorizedAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "confirmedAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "remainingAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "bankDetails": {
+            "$ref": "#/components/schemas/BankTransactionDetailsDto"
+          },
+          "fees": {
+            "$ref": "#/components/schemas/FeeDetailsDto"
+          },
+          "settlement": {
+            "$ref": "#/components/schemas/SettlementDetailsDto"
+          },
+          "details": {
+            "$ref": "#/components/schemas/ConfirmationDetailsDto"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentDetailsDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "payType": {
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "redirectMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "successURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "failURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "notificationURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDto"
+            },
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "PaymentInitRequestDto": {
+        "required": [
+          "amount",
+          "orderId",
+          "teamSlug",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "maximum": 50000000,
+            "minimum": 1000,
+            "type": "number",
+            "format": "double"
+          },
+          "orderId": {
+            "maxLength": 36,
+            "minLength": 0,
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "type": "string"
+          },
+          "payType": {
+            "pattern": "^[OT]$",
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "maxLength": 140,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "customerKey": {
+            "maxLength": 36,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "pattern": "^\\+?[1-9]\\d{6,19}$",
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "maxLength": 2,
+            "minLength": 2,
+            "pattern": "^(ru|en)$",
+            "type": "string"
+          },
+          "successURL": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "failURL": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "notificationURL": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "paymentExpiry": {
+            "maximum": 43200,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/ReceiptDto"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDto"
+            },
+            "nullable": true
+          },
+          "descriptor": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "redirectMethod": {
+            "pattern": "^(GET|POST)$",
+            "type": "string"
+          },
+          "teamSlug": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaymentInitResponseDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerInfoDto"
+          },
+          "paymentMethod": {
+            "$ref": "#/components/schemas/PaymentMethodInfoDto"
+          },
+          "details": {
+            "$ref": "#/components/schemas/PaymentDetailsDto"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentMethodInfoDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "availableMethods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "defaultMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "savedCards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedCardDto"
+            },
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "PaymentMetricsResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paymentMetrics": {
+            "type": "object"
+          }
+        }
+      },
+      "PaymentStatusDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "statusDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "payType": {
+            "type": "string",
+            "nullable": true
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CheckCustomerInfoDto"
+          },
+          "cardDetails": {
+            "$ref": "#/components/schemas/CheckCardDetailsDto"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckTransactionDto"
+            },
+            "nullable": true
+          },
+          "amounts": {
+            "$ref": "#/components/schemas/PaymentAmountsDto"
+          },
+          "urls": {
+            "$ref": "#/components/schemas/PaymentUrlsDto"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/CheckReceiptDto"
+          }
+        }
+      },
+      "PaymentUrlsDto": {
+        "type": "object",
+        "properties": {
+          "paymentURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "successURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "failURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "notificationURL": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ReceiptDto": {
+        "type": "object",
+        "properties": {
+          "Receipt_FFD_105": { },
+          "Receipt_FFD_12": { },
+          "taxation": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "RefundCardInfoDto": {
+        "type": "object",
+        "properties": {
+          "cardMask": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardType": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuingBank": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "RefundDetailsDto": {
+        "type": "object",
+        "properties": {
+          "refundId": {
+            "type": "string",
+            "nullable": true
+          },
+          "refundStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedProcessingTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "refundMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardInfo": {
+            "$ref": "#/components/schemas/RefundCardInfoDto"
+          }
+        },
+        "nullable": true
+      },
+      "ResetMetricsRequest": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SavedCardDto": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardMask": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardType": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SettlementDetailsDto": {
+        "type": "object",
+        "properties": {
+          "settlementDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "settlementAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "settlementCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "exchangeRate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "SystemMetricsResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "databaseMetrics": {
+            "type": "object"
+          },
+          "apiMetrics": {
+            "type": "object"
+          },
+          "healthCheckMetrics": {
+            "type": "object"
+          }
+        }
+      },
+      "TeamRegistrationDetailsDto": {
+        "type": "object",
+        "properties": {
+          "teamName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "successURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "failURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "notificationURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportedCurrencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "nextSteps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "nullable": true
+      },
+      "TeamRegistrationRequestDto": {
+        "required": [
+          "teamSlug",
+          "password",
+          "teamName",
+          "email",
+          "successURL",
+          "failURL",
+          "supportedCurrencies"
+        ],
+        "type": "object",
+        "properties": {
+          "teamSlug": {
+            "maxLength": 50,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9\\-_]+$",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 100,
+            "minLength": 8,
+            "type": "string"
+          },
+          "teamName": {
+            "maxLength": 100,
+            "minLength": 2,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "successURL": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "format": "uri"
+          },
+          "failURL": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "format": "uri"
+          },
+          "notificationURL": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "supportedCurrencies": {
+            "type": "string"
+          },
+          "businessInfo": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "acceptTerms": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TeamRegistrationResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "teamSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "passwordHashPreview": {
+            "type": "string",
+            "nullable": true
+          },
+          "passwordHashFull": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiEndpoint": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "$ref": "#/components/schemas/TeamRegistrationDetailsDto"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "Metrics"
+    },
+    {
+      "name": "Payment Cancellation"
+    },
+    {
+      "name": "Payment Status Check"
+    },
+    {
+      "name": "Payment Confirmation"
+    },
+    {
+      "name": "PaymentForm"
+    },
+    {
+      "name": "Payment Initialization"
+    },
+    {
+      "name": "Team Registration"
+    }
+  ]
+}

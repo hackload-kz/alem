@@ -1,0 +1,552 @@
+openapi: 3.0.3
+info:
+  title: Hackload Ticketing Service Provider
+  description: |
+    REST API service for managing ticket orders and seat reservations. The service provides two main user roles:
+    - **Administrator**: Can create and manage places/seats in the venue
+    - **Partners**: Can create orders, select places, and manage reservations
+    
+    ## Order State Machine
+    ```
+    STARTED → SUBMITTED → CONFIRMED (terminal)
+       ↓         ↓
+    CANCELLED ← CANCELLED
+    ```
+    
+    ## Typical Workflow
+    1. Start new order → 2. Browse available places → 3. Select places → 4. Review order → 5. Submit order → 6. Confirm/Cancel
+  version: 1.0.0
+  contact:
+    name: Hackload API Support
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.hackload.com
+    description: Production server
+
+tags:
+  - name: Partners - Orders
+    description: Order management operations for partners
+  - name: Partners - Places
+    description: Place/seat management operations for partners
+  - name: Admin - Places
+    description: Administrative place management operations
+
+paths:
+  /api/partners/v1/orders:
+    post:
+      tags:
+        - Partners - Orders
+      summary: Start a new order
+      description: Creates a new order and returns the order ID
+      operationId: startOrder
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreatedResponse'
+              example:
+                order_id: "98c123b9-fc80-4d6b-a3f6-0cbe84e0fd88"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/orders/{id}:
+    get:
+      tags:
+        - Partners - Orders
+      summary: Get order details
+      description: Retrieves order details by ID
+      operationId: getOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              example:
+                id: "98c123b9-fc80-4d6b-a3f6-0cbe84e0fd88"
+                status: "STARTED"
+                started_at: 1753513916968
+                updated_at: 1753513966871
+                places_count: 1
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/orders/{id}/submit:
+    patch:
+      tags:
+        - Partners - Orders
+      summary: Submit order for processing
+      description: |
+        Submits the order for processing. After submission, you can only confirm or cancel the order.
+        Order status changes to SUBMITTED.
+      operationId: submitOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order submitted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Business logic violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                orderNotStarted:
+                  summary: Order not started
+                  value:
+                    error: "OrderNotStartedException"
+                    message: "Cannot submit order that has not been started"
+                orderCancelled:
+                  summary: Order already cancelled
+                  value:
+                    error: "OrderAlreadyCancelledException"
+                    message: "Cannot submit cancelled order"
+                noPlaces:
+                  summary: No places added
+                  value:
+                    error: "NoPlacesAddedException"
+                    message: "Cannot submit order without any places"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/orders/{id}/confirm:
+    patch:
+      tags:
+        - Partners - Orders
+      summary: Confirm order
+      description: |
+        Confirms the order (terminal status - no further changes possible).
+        Order must be in SUBMITTED status.
+      operationId: confirmOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order confirmed successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Business logic violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                orderNotSubmitted:
+                  summary: Order not submitted
+                  value:
+                    error: "OrderNotSubmittedException"
+                    message: "Cannot confirm order that has not been submitted"
+                orderCancelled:
+                  summary: Order already cancelled
+                  value:
+                    error: "OrderAlreadyCancelledException"
+                    message: "Cannot confirm cancelled order"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/orders/{id}/cancel:
+    patch:
+      tags:
+        - Partners - Orders
+      summary: Cancel order
+      description: |
+        Cancels the order. Confirmed orders cannot be cancelled.
+        This is a terminal status.
+      operationId: cancelOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order cancelled successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Business logic violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                confirmedOrder:
+                  summary: Confirmed order cannot be cancelled
+                  value:
+                    error: "ConfirmedOrderCanNotBeCancelledException"
+                    message: "Cannot cancel confirmed order"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/places:
+    get:
+      tags:
+        - Partners - Places
+      summary: List available places
+      description: Retrieves available places with pagination
+      operationId: listPlaces
+      parameters:
+        - name: page
+          in: query
+          description: Page number (minimum 1)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: pageSize
+          in: query
+          description: Items per page (maximum 1000)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Places retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Place'
+              example:
+                - id: "1bf2726c-b6b7-459f-be3f-8124ecd7c619"
+                  row: 1
+                  seat: 1
+                  is_free: true
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/places/{id}:
+    get:
+      tags:
+        - Partners - Places
+      summary: Get individual place
+      description: Retrieves details of a specific place
+      operationId: getPlace
+      parameters:
+        - $ref: '#/components/parameters/PlaceId'
+      responses:
+        '200':
+          description: Place details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+              example:
+                id: "1bf2726c-b6b7-459f-be3f-8124ecd7c619"
+                row: 1
+                seat: 1
+                is_free: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/places/{id}/select:
+    patch:
+      tags:
+        - Partners - Places
+      summary: Select/reserve a place
+      description: |
+        Selects/reserves a place for an order. 
+        The place becomes unavailable (is_free: false) and is reserved for the specified order.
+      operationId: selectPlace
+      parameters:
+        - $ref: '#/components/parameters/PlaceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectPlaceRequest'
+            example:
+              order_id: "98c123b9-fc80-4d6b-a3f6-0cbe84e0fd88"
+      responses:
+        '204':
+          description: Place selected successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Business logic violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                placeAlreadySelected:
+                  summary: Place already selected
+                  value:
+                    error: "PlaceAlreadySelectedException"
+                    message: "Place is already reserved for another order"
+                placeCannotBeAdded:
+                  summary: Place cannot be added to order
+                  value:
+                    error: "PlaceCanNotBeAddedToOrderException"
+                    message: "Place cannot be added to the specified order"
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/partners/v1/places/{id}/release:
+    patch:
+      tags:
+        - Partners - Places
+      summary: Release a selected place
+      description: |
+        Releases a selected place (only works with started orders).
+        The place becomes available again (is_free: true).
+      operationId: releasePlace
+      parameters:
+        - $ref: '#/components/parameters/PlaceId'
+      responses:
+        '204':
+          description: Place released successfully
+        '403':
+          description: Operation not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                placeSelectedForAnotherOrder:
+                  summary: Place selected for another order
+                  value:
+                    error: "PlaceSelectedForAnotherOrderException"
+                    message: "Cannot release place selected for another order"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Business logic violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                placeNotAdded:
+                  summary: Place not added to order
+                  value:
+                    error: "PlaceNotAddedException"
+                    message: "Cannot release place that was not added to order"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/v1/places:
+    post:
+      tags:
+        - Admin - Places
+      summary: Create new place
+      description: |
+        Creates a new place/seat in the venue.
+        This is an administrative operation for setting up venue layout.
+      operationId: createPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlaceRequest'
+            example:
+              row: 1
+              seat: 1
+      responses:
+        '201':
+          description: Place created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    OrderId:
+      name: id
+      in: path
+      description: Order ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: "98c123b9-fc80-4d6b-a3f6-0cbe84e0fd88"
+
+    PlaceId:
+      name: id
+      in: path
+      description: Place ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: "1bf2726c-b6b7-459f-be3f-8124ecd7c619"
+
+  schemas:
+    OrderCreatedResponse:
+      type: object
+      required:
+        - order_id
+      properties:
+        order_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the created order
+          example: "98c123b9-fc80-4d6b-a3f6-0cbe84e0fd88"
+
+    Order:
+      type: object
+      required:
+        - id
+        - status
+        - started_at
+        - updated_at
+        - places_count
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the order
+          example: "98c123b9-fc80-4d6b-a3f6-0cbe84e0fd88"
+        status:
+          type: string
+          enum: [STARTED, SUBMITTED, CONFIRMED, CANCELLED]
+          description: Current status of the order
+          example: "STARTED"
+        started_at:
+          type: integer
+          format: int64
+          description: Timestamp when the order was started (Unix timestamp in milliseconds)
+          example: 1753513916968
+        updated_at:
+          type: integer
+          format: int64
+          description: Timestamp when the order was last updated (Unix timestamp in milliseconds)
+          example: 1753513966871
+        places_count:
+          type: integer
+          minimum: 0
+          description: Number of places selected for this order
+          example: 1
+
+    Place:
+      type: object
+      required:
+        - id
+        - row
+        - seat
+        - is_free
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the place
+          example: "1bf2726c-b6b7-459f-be3f-8124ecd7c619"
+        row:
+          type: integer
+          minimum: 1
+          description: Row number in the venue
+          example: 1
+        seat:
+          type: integer
+          minimum: 1
+          description: Seat number in the row
+          example: 1
+        is_free:
+          type: boolean
+          description: Whether the place is available for selection
+          example: true
+
+    SelectPlaceRequest:
+      type: object
+      required:
+        - order_id
+      properties:
+        order_id:
+          type: string
+          format: uuid
+          description: ID of the order to select the place for
+          example: "98c123b9-fc80-4d6b-a3f6-0cbe84e0fd88"
+
+    CreatePlaceRequest:
+      type: object
+      required:
+        - row
+        - seat
+      properties:
+        row:
+          type: integer
+          minimum: 1
+          description: Row number in the venue
+          example: 1
+        seat:
+          type: integer
+          minimum: 1
+          description: Seat number in the row
+          example: 1
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code identifying the specific error type
+          example: "OrderNotStartedException"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Cannot submit order that has not been started"
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "NotFound"
+            message: "The requested resource was not found"
+
+    UnprocessableEntity:
+      description: Invalid request format
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "ValidationError"
+            message: "Request format is invalid"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "InternalServerError"
+            message: "An unexpected error occurred"

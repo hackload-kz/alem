@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+package: eventprovider
+output: eventprovider.gen.go
+generate:
+  client: true
+  models: true
