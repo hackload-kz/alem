@@ -1,7 +1,9 @@
 # HackLoad
 
 
-## Диаграммы
+## Billetter API
+
+### Диаграммы
 
 <details>
 <summary>Полный цикл успешного бронирования</summary>
@@ -368,6 +370,129 @@ sequenceDiagram
     Backend->>Frontend2: 200 OK: [{"id": 789, "row": 5, "number": 15, "status": "RESERVED"}, {"id": 790, "row": 5, "number": 16, "status": "RESERVED"}]
     
     Note over User1, DB: ✅ Конкурентное бронирование успешно обработано<br/>🔒 Целостность данных сохранена<br/>⚡ Пользователи получили корректную обратную связь
+```
+
+</details>
+
+## Event Provider Documentation
+
+### Диаграммы
+
+<details>
+
+<summary>TODO</summary>
+
+```mermaid
+sequenceDiagram
+    participant Partner as Partner
+    participant API as Hackload API
+    participant DB as Database
+    participant Admin as Administrator
+
+    Note over Partner, Admin: Initial Setup Phase
+    Admin->>+API: POST /api/admin/v1/places
+    API->>+DB: Create venue places
+    DB-->>-API: Places created
+    API-->>-Admin: 201 Created
+
+    Note over Partner, DB: Main Order Workflow
+    
+    rect rgb(240, 248, 255)
+        Note over Partner, DB: 1. Order Creation
+        Partner->>+API: POST /api/partners/v1/orders
+        API->>+DB: Create new order (STARTED)
+        DB-->>-API: Order ID generated
+        API-->>-Partner: 201 Created {order_id}
+    end
+
+    rect rgb(248, 255, 240)
+        Note over Partner, DB: 2. Browse Available Places
+        Partner->>+API: GET /api/partners/v1/places?page=1&pageSize=20
+        API->>+DB: Query available places
+        DB-->>-API: Places list with is_free status
+        API-->>-Partner: 200 OK [places array]
+
+        Partner->>+API: GET /api/partners/v1/places/{id}
+        API->>+DB: Get specific place details
+        DB-->>-API: Place details
+        API-->>-Partner: 200 OK {place details}
+    end
+
+    rect rgb(255, 248, 240)
+        Note over Partner, DB: 3. Place Selection
+        Partner->>+API: PATCH /api/partners/v1/places/{id}/select
+        Note right of API: Validate: place is free,<br/>order is STARTED
+        alt Place is free and order is valid
+            API->>+DB: Reserve place for order
+            DB->>DB: Set is_free=false, link to order
+            DB-->>-API: Place reserved
+            API-->>-Partner: 204 No Content
+        else Place already selected
+            API-->>Partner: 409 PlaceAlreadySelectedException
+        else Order not started
+            API-->>Partner: 409 OrderNotStartedException
+        end
+    end
+
+    rect rgb(255, 240, 248)
+        Note over Partner, DB: 4. Order Management
+        Partner->>+API: GET /api/partners/v1/orders/{id}
+        API->>+DB: Get order details
+        DB-->>-API: Order with places_count
+        API-->>-Partner: 200 OK {order details}
+
+        opt Release place if needed
+            Partner->>+API: PATCH /api/partners/v1/places/{id}/release
+            alt Place belongs to partner's order
+                API->>+DB: Release place
+                DB->>DB: Set is_free=true, unlink from order
+                DB-->>-API: Place released
+                API-->>-Partner: 204 No Content
+            else Place belongs to another order
+                API-->>Partner: 403 PlaceSelectedForAnotherOrderException
+            end
+        end
+    end
+
+    rect rgb(248, 240, 255)
+        Note over Partner, DB: 5. Order Submission
+        Partner->>+API: PATCH /api/partners/v1/orders/{id}/submit
+        alt Order has places
+            API->>+DB: Update order status to SUBMITTED
+            DB-->>-API: Order submitted
+            API-->>-Partner: 200 OK
+        else No places in order
+            API-->>Partner: 409 NoPlacesAddedException
+        end
+    end
+
+    rect rgb(240, 255, 248)
+        Note over Partner, DB: 6. Final Actions
+        alt Confirm Order
+            Partner->>+API: PATCH /api/partners/v1/orders/{id}/confirm
+            alt Order is submitted
+                API->>+DB: Update order status to CONFIRMED
+                DB-->>-API: Order confirmed (terminal)
+                API-->>-Partner: 200 OK
+            else Order not submitted
+                API-->>Partner: 409 OrderNotSubmittedException
+            end
+        else Cancel Order
+            Partner->>+API: PATCH /api/partners/v1/orders/{id}/cancel
+            alt Order not confirmed
+                API->>+DB: Update order status to CANCELLED
+                DB->>DB: Release all places in order
+                DB-->>-API: Order cancelled, places freed
+                API-->>-Partner: 200 OK
+            else Order already confirmed
+                API-->>Partner: 409 ConfirmedOrderCanNotBeCancelledException
+            end
+        end
+    end
+
+    Note over Partner, DB: Order State Transitions
+    Note over API: STARTED → SUBMITTED → CONFIRMED (terminal)
+    Note over API: STARTED/SUBMITTED → CANCELLED (terminal)
 ```
 
 </details>
