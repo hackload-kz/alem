@@ -1,0 +1,625 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Билеттер API",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://localhost:8081"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "CreateEventRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "external": {
+            "type": "boolean",
+            "default": "false"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "CreateEventResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "ListEventsResponseItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ]
+      },
+      "ListEventsResponseItemSeat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "ListEventsResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ListEventsResponseItem"
+        }
+      },
+      "ListBookingsResponseItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "event_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "seats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListEventsResponseItemSeat"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "event_id"
+        ]
+      },
+      "ListBookingsResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ListBookingsResponseItem"
+        }
+      },
+      "CreateBookingRequest": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "event_id"
+        ]
+      },
+      "CreateBookingResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "ListSeatsResponseItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "row": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "FREE",
+              "RESERVED",
+              "SOLD"
+            ]
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal"
+          }
+        },
+        "required": [
+          "id",
+          "row",
+          "number",
+          "status",
+          "price"
+        ]
+      },
+      "ListSeatsResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ListSeatsResponseItem"
+        }
+      },
+      "SelectSeatRequest": {
+        "type": "object",
+        "properties": {
+          "booking_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "seat_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "seat_id",
+          "booking_id"
+        ]
+      },
+      "ReleaseSeatRequest": {
+        "type": "object",
+        "properties": {
+          "seat_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "seat_id"
+        ]
+      },
+      "InitiatePaymentRequest": {
+        "type": "object",
+        "properties": {
+          "booking_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "booking_id"
+        ]
+      },
+      "CancelBookingRequest": {
+        "type": "object",
+        "properties": {
+          "booking_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "booking_id"
+        ]
+      },
+      "PaymentNotificationPayload": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "teamSlug": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "ListEvents",
+        "summary": "Получить список событий",
+        "description": "Возвращает список событие при успехе",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "description": "Параметр для полноконтекстного поиска",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "description": "Параметр для фильтрации по дате события",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список событий успешно получен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListEventsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "operationId": "CreateBooking",
+        "summary": "Создать бронирование",
+        "description": "Создать бронирование для последующего выбора мест на событие",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Бронирование успешно создано",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBookingResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "operationId": "ListBookings",
+        "summary": "Получить список бронирований",
+        "description": "Возвращает список бронирований текущего пользователя",
+        "responses": {
+          "200": {
+            "description": "Список бронирований текущего пользователя",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBookingsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/initiatePayment": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "operationId": "InitiatePayment",
+        "summary": "Инициировать платеж для бронирования",
+        "description": "Бронирование переходить в ожидания платежа",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiatePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            },
+            "description": "Бронь ожидает подтверждения платежа"
+          }
+        }
+      }
+    },
+    "/api/bookings/cancel": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "operationId": "CancelBooking",
+        "summary": "Отменить бронирование",
+        "description": "Бронирование отменено",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelBookingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Бронь успешно отменена"
+          }
+        }
+      }
+    },
+    "/api/seats": {
+      "get": {
+        "tags": [
+          "Seats"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "event_id",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "row",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "FREE", "RESERVED", "SOLD"
+              ]
+            }
+          }
+        ],
+        "operationId": "ListSeats",
+        "summary": "Получить список мест",
+        "description": "Возвращает список мест",
+        "responses": {
+          "200": {
+            "description": "Список мест",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListSeatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seats/select": {
+      "patch": {
+        "tags": [
+          "Seats"
+        ],
+        "operationId": "SelectSeat",
+        "summary": "Выбрать место для брони",
+        "description": "Место становится недоступным для выбора другим пользователям",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectSeatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Место успешно добавлено в бронь"
+          },
+          "419": {
+            "description": "Не удалось добавить место в бронь"
+          }
+        }
+      }
+    },
+    "/api/seats/release": {
+      "patch": {
+        "tags": [
+          "Seats"
+        ],
+        "operationId": "ReleaseSeat",
+        "summary": "Убрать место из брони",
+        "description": "Место становится доступным для выбора другим пользователям",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseSeatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Место успешно освобождено"
+          },
+          "419": {
+            "description": "Не удалось освободить место"
+          }
+        }
+      }
+    },
+    "/api/payments/success": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "operationId": "NotifyPaymentCompleted",
+        "summary": "Уведомить сервис, что платеж успешно проведен",
+        "description": "Бронь становится подтвержденной и оплаченной",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "orderId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/payments/fail": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "operationId": "NotifyPaymentFailed",
+        "summary": "Уведомить сервис, что платеж неуспешно проведен",
+        "description": "Бронь отменяется и места освобождаются, становясь доступными другим пользователям для брони",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "orderId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/payments/notifications": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "operationId": "OnPaymentUpdates",
+        "summary": "Принимать уведомления от платежного шлюза",
+        "description": "Принимать уведомления от платежного шлюза",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentNotificationPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}

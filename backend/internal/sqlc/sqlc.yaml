@@ -1,0 +1,80 @@
+version: "2"
+overrides:
+  go:
+    overrides:
+      # date
+      - db_type: "date"
+        go_type:
+          type: string
+
+      - db_type: "date"
+        nullable: true
+        go_type:
+          type: string
+          pointer: true
+
+      # time.Time
+      - db_type: "timestamptz"
+        go_type:
+          import: "time"
+          type: "Time"
+
+      - db_type: "timestamptz"
+        nullable: true
+        go_type:
+          import: "time"
+          type: "Time"
+          pointer: true
+
+      # bool
+      - db_type: "boolean"
+        go_type:
+          type: "bool"
+      
+      - db_type: "boolean"
+        nullable: true
+        go_type:
+          type: "bool"
+          pointer: true
+
+      # string
+      - db_type: "text"
+        go_type:
+          type: "string"
+
+      - db_type: "text"
+        nullable: true
+        go_type:
+          type: "string"
+          pointer: true
+
+
+      # any
+      - db_type: "jsonb"
+        nullable: true
+        go_type:
+          type: "any"
+
+      # # int
+      # - db_type: "pg_catalog.int4"
+      #   go_type:
+      #     type: "int"
+      
+      # - db_type: "pg_catalog.int4"
+      #   nullable: true
+      #   go_type:
+      #     type: "int"
+      #     pointer: true
+
+sql:
+  - queries:
+      - "users.sql"
+      - "events.sql"
+    schema: "../../migrations"
+    engine: "sqlite"
+    gen:
+      go:
+        out: "."
+        package: "sqlc"
+        omit_unused_structs: true
+        # sql_package: "pgx/v5"

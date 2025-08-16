@@ -1,0 +1,9 @@
+version: '3'
+
+dotenv: ['.env']
+
+tasks:
+  migrate:create:
+    desc: |
+      Создание новой миграции (usage: task migrate:create -- название_миграции)
+    cmd: migrate create -ext sql -dir migrations -tz Asia/Almaty {{.CLI_ARGS}}
