@@ -234,3 +234,140 @@ sequenceDiagram
 ```
 
 </details>
+
+<details>
+
+<summary>Конкурентное бронирование одного места</summary>
+
+```mermaid
+sequenceDiagram
+    participant User1 as Пользователь 1
+    participant Frontend1 as Фронтенд 1
+    participant User2 as Пользователь 2
+    participant Frontend2 as Фронтенд 2
+    participant Backend as Билеттер API
+    participant DB as База данных
+    
+    Note over User1, DB: Подготовка: создание бронирований для обоих пользователей
+    
+    User1->>Frontend1: Выбирает событие (ID: 123)
+    Frontend1->>Backend: POST /api/bookings {"event_id": 123}
+    Backend->>Frontend1: 201 Created: {"id": 456}
+    Note right of Backend: Бронирование 1 создано
+    
+    User2->>Frontend2: Выбирает то же событие (ID: 123)
+    Frontend2->>Backend: POST /api/bookings {"event_id": 123}
+    Backend->>Frontend2: 201 Created: {"id": 457}
+    Note right of Backend: Бронирование 2 создано
+    
+    Note over User1, DB: Оба пользователя видят одинаковую схему зала
+    
+    Frontend1->>Backend: GET /api/seats?event_id=123&page=1&pageSize=20&status=FREE
+    Backend->>Frontend1: 200 OK: [{"id": 789, "row": 5, "number": 15, "status": "FREE"}, ...]
+    Frontend1->>User1: Показывает доступные места
+    
+    Frontend2->>Backend: GET /api/seats?event_id=123&page=1&pageSize=20&status=FREE  
+    Backend->>Frontend2: 200 OK: [{"id": 789, "row": 5, "number": 15, "status": "FREE"}, ...]
+    Frontend2->>User2: Показывает те же доступные места
+    
+    Note over User1, DB: 🏁 Начало гонки: оба пользователя выбирают место 789
+    
+    par Одновременные запросы на одно место
+        User1->>Frontend1: Кликает на место (row: 5, seat: 15, ID: 789)
+        Frontend1->>Backend: PATCH /api/seats/select {"booking_id": 456, "seat_id": 789}
+        Note right of Backend: Запрос 1 поступил в t=0ms
+    and
+        User2->>Frontend2: Кликает на то же место (row: 5, seat: 15, ID: 789)
+        Frontend2->>Backend: PATCH /api/seats/select {"booking_id": 457, "seat_id": 789}
+        Note right of Backend: Запрос 2 поступил в t=5ms
+    end
+    
+    Note over User1, DB: Обработка конкурентных запросов на сервере
+    
+    Backend->>DB: BEGIN TRANSACTION 1
+    Backend->>DB: SELECT * FROM seats WHERE id = 789 FOR UPDATE
+    DB->>Backend: {"id": 789, "status": "FREE", "booking_id": null}
+    
+    Backend->>DB: BEGIN TRANSACTION 2  
+    Note right of DB: Транзакция 2 ждет освобождения блокировки строки
+    
+    Backend->>DB: UPDATE seats SET status='RESERVED', booking_id=456 WHERE id=789 AND status='FREE'
+    DB->>Backend: 1 row affected (успех)
+    Backend->>DB: COMMIT TRANSACTION 1
+    Note right of Backend: Пользователь 1 успешно забронировал место
+    
+    Backend->>Frontend1: 200 OK: "Место успешно добавлено в бронь"
+    Frontend1->>User1: ✅ Место забронировано! (зеленая подсветка)
+    
+    Note over User1, DB: Обработка второго запроса после освобождения блокировки
+    
+    Backend->>DB: SELECT * FROM seats WHERE id = 789 FOR UPDATE
+    DB->>Backend: {"id": 789, "status": "RESERVED", "booking_id": 456}
+    Backend->>DB: UPDATE seats SET status='RESERVED', booking_id=457 WHERE id=789 AND status='FREE'
+    DB->>Backend: 0 rows affected (место уже занято)
+    Backend->>DB: COMMIT TRANSACTION 2
+    
+    Backend->>Frontend2: 419 Conflict: "Не удалось добавить место в бронь"
+    Frontend2->>User2: ❌ Место уже занято! Выберите другое место
+    
+    Note over User1, DB: Альтернативный сценарий: timeout при блокировке
+    
+    alt Сценарий с таймаутом блокировки
+        Note over User1, DB: Если второй запрос не может получить блокировку
+        
+        Backend->>DB: SELECT * FROM seats WHERE id = 789 FOR UPDATE WAIT 5
+        DB->>Backend: TIMEOUT ERROR: Lock wait timeout exceeded
+        Backend->>Frontend2: 419 Conflict: "Не удалось добавить место в бронь"
+        Frontend2->>User2: ❌ Место временно недоступно, попробуйте еще раз
+        
+    else Сценарий с очень быстрым пользователем 2
+        Note over User1, DB: Если пользователь 2 отменяет выбор и пробует другое место
+        
+        User2->>Frontend2: Быстро выбирает другое свободное место (ID: 790)
+        Frontend2->>Backend: PATCH /api/seats/select {"booking_id": 457, "seat_id": 790}
+        
+        Backend->>DB: BEGIN TRANSACTION 3
+        Backend->>DB: SELECT * FROM seats WHERE id = 790 FOR UPDATE
+        DB->>Backend: {"id": 790, "status": "FREE", "booking_id": null}
+        Backend->>DB: UPDATE seats SET status='RESERVED', booking_id=457 WHERE id=790 AND status='FREE'
+        DB->>Backend: 1 row affected (успех)
+        Backend->>DB: COMMIT TRANSACTION 3
+        
+        Backend->>Frontend2: 200 OK: "Место успешно добавлено в бронь"
+        Frontend2->>User2: ✅ Альтернативное место забронировано!
+        
+    else Сценарий массовой конкуренции (3+ пользователей)
+        Note over User1, DB: Третий пользователь тоже пытается забронировать место 789
+        
+        participant User3 as Пользователь 3
+        participant Frontend3 as Фронтенд 3
+        
+        User3->>Frontend3: Выбирает событие и создает бронирование
+        Frontend3->>Backend: POST /api/bookings {"event_id": 123}
+        Backend->>Frontend3: 201 Created: {"id": 458}
+        
+        User3->>Frontend3: Пытается выбрать место 789
+        Frontend3->>Backend: PATCH /api/seats/select {"booking_id": 458, "seat_id": 789}
+        
+        Backend->>DB: BEGIN TRANSACTION 4
+        Backend->>DB: SELECT * FROM seats WHERE id = 789 FOR UPDATE
+        DB->>Backend: {"id": 789, "status": "RESERVED", "booking_id": 456}
+        Backend->>DB: ROLLBACK TRANSACTION 4
+        
+        Backend->>Frontend3: 419 Conflict: "Не удалось добавить место в бронь"
+        Frontend3->>User3: ❌ Место уже занято другим пользователем
+        
+    end
+    
+    Note over User1, DB: Финальное состояние системы
+    
+    Frontend1->>Backend: GET /api/seats?event_id=123&row=5
+    Backend->>Frontend1: 200 OK: [{"id": 789, "row": 5, "number": 15, "status": "RESERVED"}, {"id": 790, "row": 5, "number": 16, "status": "RESERVED"}]
+    
+    Frontend2->>Backend: GET /api/seats?event_id=123&row=5  
+    Backend->>Frontend2: 200 OK: [{"id": 789, "row": 5, "number": 15, "status": "RESERVED"}, {"id": 790, "row": 5, "number": 16, "status": "RESERVED"}]
+    
+    Note over User1, DB: ✅ Конкурентное бронирование успешно обработано<br/>🔒 Целостность данных сохранена<br/>⚡ Пользователи получили корректную обратную связь
+```
+
+</details>
