@@ -2,8 +2,10 @@ package ports
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"hackload/internal/middleware"
 	"hackload/internal/sqlc"
 )
 
@@ -20,7 +22,23 @@ func NewHttpServer(queries *sqlc.Queries) ServerInterface {
 // Получить список бронирований
 // (GET /api/bookings)
 func (s *HttpServer) ListBookings(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented") // TODO: Implement
+	session, ok := middleware.GetUserFromContext(r.Context())
+	fmt.Printf("%#v\n", session)
+	if !ok {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	bookings, err := s.queries.GetBookings(r.Context(), session.UserID)
+	fmt.Printf("%#v, %v\n", bookings, err)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	for _, booking := range bookings {
+		fmt.Printf("%#v\n", booking)
+	}
 }
 
 // Создать бронирование

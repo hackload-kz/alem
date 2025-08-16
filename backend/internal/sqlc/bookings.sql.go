@@ -13,13 +13,15 @@ const getBookings = `-- name: GetBookings :many
 select
   b.id,
   b.event_id,
-  json_group_array(
-    json_object(
-      'id', bs.seat_id
+  CASE 
+    WHEN COUNT(bs.seat_id) = 0 THEN cast(json_array() as text)
+    ELSE cast(
+      json_group_array(json_object('id', bs.seat_id))
+      as text
     )
-  ) AS seats
+  END AS seats
 from bookings b
-join booking_seats as bs on bs.booking_id = b.id
+left join booking_seats as bs on bs.booking_id = b.id
 where 1=1
   and ?1 = b.user_id
 group by b.id, b.event_id
@@ -28,7 +30,7 @@ group by b.id, b.event_id
 type GetBookingsRow struct {
 	ID      int64
 	EventID int64
-	Seats   interface{}
+	Seats   string
 }
 
 func (q *Queries) GetBookings(ctx context.Context, userID int64) ([]GetBookingsRow, error) {
