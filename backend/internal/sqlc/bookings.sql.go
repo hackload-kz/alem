@@ -30,6 +30,70 @@ func (q *Queries) DeleteBookingSeat(ctx context.Context, arg DeleteBookingSeatPa
 	return result.RowsAffected()
 }
 
+const deleteBookingSeats = `-- name: DeleteBookingSeats :execrows
+;
+
+delete from booking_seats 
+where booking_id = ?1
+`
+
+func (q *Queries) DeleteBookingSeats(ctx context.Context, bookingID int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteBookingSeats, bookingID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const getBooking = `-- name: GetBooking :one
+;
+
+select id, user_id, event_id, status from bookings 
+where id = ?1
+`
+
+func (q *Queries) GetBooking(ctx context.Context, bookingID int64) (Booking, error) {
+	row := q.db.QueryRowContext(ctx, getBooking, bookingID)
+	var i Booking
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EventID,
+		&i.Status,
+	)
+	return i, err
+}
+
+const getBookingSeats = `-- name: GetBookingSeats :many
+;
+
+select seat_id from booking_seats
+where booking_id = ?1
+`
+
+func (q *Queries) GetBookingSeats(ctx context.Context, bookingID int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getBookingSeats, bookingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var seat_id int64
+		if err := rows.Scan(&seat_id); err != nil {
+			return nil, err
+		}
+		items = append(items, seat_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBookings = `-- name: GetBookings :many
 select
   b.id,

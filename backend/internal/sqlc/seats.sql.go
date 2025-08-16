@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"strings"
 )
 
 const getSeats = `-- name: GetSeats :many
@@ -87,5 +88,34 @@ type UpdateSeatStatusParams struct {
 
 func (q *Queries) UpdateSeatStatus(ctx context.Context, arg UpdateSeatStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateSeatStatus, arg.Status, arg.SeatID)
+	return err
+}
+
+const updateSeatsStatusByIDs = `-- name: UpdateSeatsStatusByIDs :exec
+;
+
+update seats 
+set status = ?1
+where id IN (/*SLICE:seat_ids*/?)
+`
+
+type UpdateSeatsStatusByIDsParams struct {
+	Status  string
+	SeatIds []int64
+}
+
+func (q *Queries) UpdateSeatsStatusByIDs(ctx context.Context, arg UpdateSeatsStatusByIDsParams) error {
+	query := updateSeatsStatusByIDs
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Status)
+	if len(arg.SeatIds) > 0 {
+		for _, v := range arg.SeatIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:seat_ids*/?", strings.Repeat(",?", len(arg.SeatIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:seat_ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
 	return err
 }

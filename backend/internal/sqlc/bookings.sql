@@ -25,3 +25,18 @@ delete from booking_seats
 where seat_id = sqlc.arg(seat_id)
   and user_id = sqlc.arg(user_id)
 ;
+
+-- name: GetBooking :one
+select * from bookings 
+where id = sqlc.arg(booking_id)
+;
+
+-- name: GetBookingSeats :many
+select seat_id from booking_seats
+where booking_id = sqlc.arg(booking_id)
+;
+
+-- name: DeleteBookingSeats :execrows
+delete from booking_seats 
+where booking_id = sqlc.arg(booking_id)
+;

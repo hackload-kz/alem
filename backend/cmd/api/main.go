@@ -15,10 +15,12 @@ import (
 	"hackload/internal/config"
 	"hackload/internal/dependencies"
 	"hackload/internal/middleware"
+	"hackload/internal/portriver"
 	"hackload/internal/ports"
 	"hackload/internal/sqlc"
 
 	"github.com/gorilla/mux"
+	"github.com/riverqueue/river"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -49,15 +51,20 @@ func main() {
 		return
 	}
 
-	// if err := deps.InitRiverClient(conf.RiverMaxWorkers); err != nil {
-	// 	slog.Error("unable to init river client", "error", err)
-	// 	return
-	// }
+	queries := sqlc.New(deps.DB)
+
+	river.AddWorker(
+		deps.RiverWorkers,
+		portriver.NewReleaseSeatsWorker(queries, deps.DB),
+	)
+
+	if err := deps.InitRiverClient(conf.RiverMaxWorkers); err != nil {
+		slog.Error("unable to init river client", "error", err)
+		return
+	}
 
 	router := mux.NewRouter()
 
-	queries := sqlc.New(deps.DB)
-	
 	ports.HandlerWithOptions(ports.NewHttpServer(queries, deps.DB), ports.GorillaServerOptions{
 		BaseRouter: router,
 		Middlewares: []ports.MiddlewareFunc{
@@ -121,24 +128,24 @@ func main() {
 		return nil
 	})
 
-	// // RiverQueue
-	// g.Go(func() error {
-	// 	slog.Info("starting riverqueue")
-	// 	if err := deps.RiverClient.Start(gCtx); err != nil {
-	// 		return err
-	// 	}
+	// RiverQueue
+	g.Go(func() error {
+		slog.Info("starting riverqueue")
+		if err := deps.RiverClient.Start(gCtx); err != nil {
+			return err
+		}
 
-	// 	<-gCtx.Done()
+		<-gCtx.Done()
 
-	// 	slog.Info("shutting down riverqueue")
-	// 	if err := deps.RiverClient.Stop(context.Background()); err != nil {
-	// 		return err
-	// 	}
+		slog.Info("shutting down riverqueue")
+		if err := deps.RiverClient.Stop(context.Background()); err != nil {
+			return err
+		}
 
-	// 	slog.Info("riverqueue stopped")
+		slog.Info("riverqueue stopped")
 
-	// 	return nil
-	// })
+		return nil
+	})
 
 	// Wait for all goroutines to complete
 	if err := g.Wait(); err != nil {
