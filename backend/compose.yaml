@@ -1,0 +1,17 @@
+services:
+  hackload:
+    build: .
+    network_mode: "host"
+    environment:
+      - SQLITE3_PATH=./api_data/db.sqlite3
+      - RIVER_SQLITE3_PATH=./river_data/db.sqlite3
+    env_file: .env
+    # .env contains:
+    # - API_ADDR
+    # - EVENT_PROVIDER_ADDR
+    # - PAYMENT_PROVIDER_ADDR
+    # - PAYMENT_PROVIDER_MERCHANT_PASSWORD
+    # - PAYMENT_PROVIDER_MERCHANT_ID
+    volumes:
+      - ./api_data
+      - ./river_data
