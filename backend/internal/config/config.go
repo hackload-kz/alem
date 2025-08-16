@@ -7,8 +7,13 @@ import (
 )
 
 type Config struct {
-	SQLite3Path     string `env:"SQLITE3_PATH"`
-	RiverMaxWorkers int    `env:"RIVER_MAX_WORKERS, default=5"`
+	SQLite3Path string `env:"SQLITE3_PATH"`
+
+	// River
+	River struct {
+		SQLite3Path string `env:"SQLITE3_PATH, default=river.db"`
+		MaxWorkers  int    `env:"MAX_WORKERS, default=5"`
+	} `env:", prefix=RIVER_"`
 
 	// API
 	API struct {

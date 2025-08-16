@@ -15,6 +15,24 @@ type Booking struct {
 	Status  string
 }
 
+type BookingOrder struct {
+	ID        int64
+	BookingID int64
+	OrderID   string
+	Status    *string
+}
+
+type BookingPayment struct {
+	ID        int64
+	BookingID int64
+	OrderID   string
+	Status    *string
+	PaymentID string
+	Amount    int64
+	Currency  string
+	TeamSlug  string
+}
+
 type Seat struct {
 	ID         int64
 	EventID    int64

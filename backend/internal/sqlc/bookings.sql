@@ -80,3 +80,25 @@ UPDATE booking_orders
 SET status = sqlc.arg(status)
 WHERE booking_id = sqlc.arg(booking_id)
 ;
+
+-- name: GetBookingOrder :one
+SELECT * FROM booking_orders 
+WHERE booking_id = sqlc.arg(booking_id)
+;
+
+-- name: InsertBookingPayment :exec
+INSERT INTO booking_payments (booking_id, order_id, payment_id, status, amount, currency, team_slug)
+VALUES (sqlc.arg(booking_id), sqlc.arg(order_id), sqlc.arg(payment_id), sqlc.arg(status), sqlc.arg(amount), sqlc.arg(currency), sqlc.arg(team_slug))
+;
+
+-- name: GetBookingTotal :one
+SELECT COALESCE(SUM(CAST(s.price AS REAL) * 100), 0) as total
+FROM booking_seats bs
+JOIN seats s ON bs.seat_id = s.id
+WHERE bs.booking_id = sqlc.arg(booking_id)
+;
+
+-- name: GetBookingPaymentByBookingID :one
+SELECT * FROM booking_payments 
+WHERE booking_id = sqlc.arg(booking_id)
+;

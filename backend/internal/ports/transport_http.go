@@ -5,26 +5,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
+	"hackload/internal/config"
 	"hackload/internal/middleware"
+	"hackload/internal/paymenttoken"
 	"hackload/internal/portriver"
 	"hackload/internal/sqlc"
+	"hackload/pkg/paymentgateway"
 
 	"github.com/riverqueue/river"
 )
 
 type HttpServer struct {
-	queries     *sqlc.Queries
-	db          *sql.DB
-	riverClient *river.Client[*sql.Tx]
+	queries        *sqlc.Queries
+	db             *sql.DB
+	riverClient    *river.Client[*sql.Tx]
+	paymentGateway paymentgateway.ClientInterface
+	config         *config.Config
 }
 
-func NewHttpServer(queries *sqlc.Queries, db *sql.DB, riverClient *river.Client[*sql.Tx]) ServerInterface {
+func NewHttpServer(queries *sqlc.Queries, db *sql.DB, riverClient *river.Client[*sql.Tx], paymentGateway paymentgateway.ClientInterface, config *config.Config) ServerInterface {
 	return &HttpServer{
-		queries:     queries,
-		db:          db,
-		riverClient: riverClient,
+		queries:        queries,
+		db:             db,
+		riverClient:    riverClient,
+		paymentGateway: paymentGateway,
+		config:         config,
 	}
 }
 
@@ -183,16 +191,36 @@ func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*
-		1. Если CONFIRMED -> Отменить в TicketProvider -> Освободить места
-		2. ЕСЛИ CONFIRMED -> Вернуть деньги в Payment Gateway
-	*/
 	if booking.Status == "CONFIRMED" {
-		// TODO
+		// 1. Если CONFIRMED -> Отменить в TicketProvider -> Освободить места
+		if _, err := s.riverClient.Insert(
+			r.Context(),
+			&portriver.CancelBookingArgs{
+				BookingID: req.BookingId,
+			},
+			nil,
+		); err != nil {
+			fmt.Println("ERROR: s.riverClient.Insert:", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		// 2. ЕСЛИ CONFIRMED -> Вернуть деньги в Payment Gateway
+		if _, err := s.riverClient.Insert(
+			r.Context(),
+			&portriver.RefundPaymentArgs{
+				BookingID: req.BookingId,
+			},
+			nil,
+		); err != nil {
+			fmt.Println("ERROR: s.riverClient.Insert RefundPayment:", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Если CREATED -> Освободить места
-	if booking.Status == "CONFIRMED" || booking.Status == "CREATED" {
+	if booking.Status == "CREATED" {
 		if _, err := s.riverClient.Insert(
 			r.Context(),
 			&portriver.ReleaseSeatsArgs{
@@ -218,12 +246,164 @@ func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
 // Инициировать платеж для бронирования
 // (PATCH /api/bookings/initiatePayment)
 func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
-	/*
-		1. Создать платеж в PaymentGateway
-		2. Создать booking_payments с указанным order_id
-		3. Изменить статуст на PAYMENT_INITIATED
-		4. Вернуть URL оплаты
-	*/
+	session, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		fmt.Println("ERROR: middleware.GetUserFromContext: false")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var req InitiatePaymentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Println("ERROR: json.NewDecoder:", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		http.Error(w, "Could not start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	qtx := s.queries.WithTx(tx)
+
+	// 1. Get and validate the booking
+	booking, err := qtx.GetBooking(r.Context(), req.BookingId)
+	if err != nil {
+		fmt.Printf("ERROR: failed to get booking: %v\n", err)
+		http.Error(w, "Booking not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if booking belongs to the user
+	if booking.UserID != session.UserID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Check if booking is in correct status
+	if booking.Status != "CREATED" {
+		http.Error(w, "Booking is not in valid state for payment", http.StatusBadRequest)
+		return
+	}
+
+	// 2. Get booking total in cents
+	totalInterface, err := qtx.GetBookingTotal(r.Context(), req.BookingId)
+	if err != nil {
+		fmt.Printf("ERROR: failed to get booking total: %v\n", err)
+		http.Error(w, "Failed to calculate booking total", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert total to int64 (cents)
+	var totalCents int64
+	switch v := totalInterface.(type) {
+	case float64:
+		totalCents = int64(v)
+	case int64:
+		totalCents = v
+	default:
+		fmt.Printf("ERROR: unexpected total type: %T\n", totalInterface)
+		http.Error(w, "Failed to calculate booking total", http.StatusInternalServerError)
+		return
+	}
+
+	if totalCents <= 0 {
+		http.Error(w, "Booking has no items or invalid total", http.StatusBadRequest)
+		return
+	}
+
+	// Generate unique order ID for payment - using timestamp to ensure uniqueness
+	orderID := time.Now().UnixNano()
+	orderIDStr := strconv.FormatInt(orderID, 10)
+	currency := "KZT"
+
+	// Generate token using shared token generation function
+	token := paymenttoken.GenerateToken(
+		totalCents,
+		currency,
+		orderIDStr,
+		s.config.PaymentProvider.MerchantPassword,
+		s.config.PaymentProvider.MerchantID,
+	)
+
+	// 3. Create payment in PaymentGateway
+	paymentReq := paymentgateway.PaymentInitRequestDto{
+		Amount:      float64(totalCents),
+		OrderId:     orderIDStr,
+		TeamSlug:    s.config.PaymentProvider.MerchantID,
+		Token:       token,
+		SuccessURL:  stringPtr(s.config.API.Addr + "/api/payments/success?orderId=" + orderIDStr),
+		FailURL:     stringPtr(s.config.API.Addr + "/api/payments/fail?orderId=" + orderIDStr),
+		Currency:    stringPtr(currency),
+		Description: stringPtr("Payment for booking " + strconv.FormatInt(req.BookingId, 10)),
+	}
+
+	resp, err := s.paymentGateway.PostApiV1PaymentInitInit(r.Context(), paymentReq)
+	if err != nil {
+		fmt.Printf("ERROR: failed to init payment: %v\n", err)
+		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		fmt.Printf("ERROR: payment gateway returned status: %d\n", resp.StatusCode)
+		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse payment response
+	var paymentResp paymentgateway.PaymentInitResponseDto
+	if err := json.NewDecoder(resp.Body).Decode(&paymentResp); err != nil {
+		fmt.Printf("ERROR: failed to decode payment response: %v\n", err)
+		http.Error(w, "Failed to process payment response", http.StatusInternalServerError)
+		return
+	}
+
+	if paymentResp.PaymentURL == nil {
+		fmt.Println("ERROR: payment URL is nil")
+		http.Error(w, "Failed to get payment URL", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. Create booking_payments record
+	err = qtx.InsertBookingPayment(r.Context(), sqlc.InsertBookingPaymentParams{
+		BookingID: req.BookingId,
+		OrderID:   orderIDStr,
+		PaymentID: *paymentResp.PaymentId, // Save the PaymentID from gateway response
+		Status:    stringPtr("INIT"),
+		Amount:    totalCents,                          // Save amount for token generation
+		Currency:  currency,                            // Save currency for token generation
+		TeamSlug:  s.config.PaymentProvider.MerchantID, // Save team slug for token generation
+	})
+	if err != nil {
+		fmt.Printf("ERROR: failed to insert booking payment: %v\n", err)
+		http.Error(w, "Failed to create payment record", http.StatusInternalServerError)
+		return
+	}
+
+	// 5. Update booking status to PAYMENT_INITIATED
+	err = qtx.UpdateBookingStatus(r.Context(), sqlc.UpdateBookingStatusParams{
+		Status:    "PAYMENT_INITIATED",
+		BookingID: req.BookingId,
+	})
+	if err != nil {
+		fmt.Printf("ERROR: failed to update booking status: %v\n", err)
+		http.Error(w, "Failed to update booking status", http.StatusInternalServerError)
+		return
+	}
+
+	// Commit transaction
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "Could not commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	// 6. Return 302 redirect with payment URL
+	w.Header().Set("Location", *paymentResp.PaymentURL)
+	w.WriteHeader(http.StatusFound)
 }
 
 // Получить список событий
@@ -279,13 +459,60 @@ func (s *HttpServer) ListEvents(w http.ResponseWriter, r *http.Request, params L
 // Уведомить сервис, что платеж неуспешно проведен
 // (GET /api/payments/fail)
 func (s *HttpServer) NotifyPaymentFailed(w http.ResponseWriter, r *http.Request, params NotifyPaymentFailedParams) {
-	/*
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		http.Error(w, "Could not start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
 
-		1. Изменить статус booking_payments на FAIL
-		2. Изменить статуc bookings на CANCELLED
-		3. Отменить в TicketProvider -> Освободить места
+	qtx := s.queries.WithTx(tx)
 
-	*/
+	// 1. Update booking_payments status to FAIL
+	err = qtx.UpdateBookingPaymentStatus(r.Context(), sqlc.UpdateBookingPaymentStatusParams{
+		Status:  stringPtr("FAIL"),
+		OrderID: fmt.Sprintf("%d", params.OrderId),
+	})
+	if err != nil {
+		fmt.Printf("ERROR: failed to update payment status: %v\n", err)
+		http.Error(w, "Failed to update payment status", http.StatusInternalServerError)
+		return
+	}
+
+	// 2. Get booking by payment order ID
+	booking, err := qtx.GetBookingByPaymentOrderID(r.Context(), fmt.Sprintf("%d", params.OrderId))
+	if err != nil {
+		fmt.Printf("ERROR: failed to get booking by payment order ID: %v\n", err)
+		http.Error(w, "Booking not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Update booking status to CANCELLED
+	err = qtx.UpdateBookingStatus(r.Context(), sqlc.UpdateBookingStatusParams{
+		Status:    "CANCELLED",
+		BookingID: booking.ID,
+	})
+	if err != nil {
+		fmt.Printf("ERROR: failed to update booking status: %v\n", err)
+		http.Error(w, "Failed to update booking status", http.StatusInternalServerError)
+		return
+	}
+
+	// Commit database changes first
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "Could not commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. Queue CancelBookingProvider to handle EventProvider cancellation and seat release
+	if _, err = s.riverClient.Insert(r.Context(), portriver.CancelBookingArgs{
+		BookingID: booking.ID,
+	}, nil); err != nil {
+		fmt.Printf("ERROR: failed to queue CancelBookingWorker: %v\n", err)
+		// Don't fail the request - payment failure was already processed successfully
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Принимать уведомления от платежного шлюза

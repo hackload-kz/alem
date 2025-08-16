@@ -168,7 +168,3 @@ func (w *ConfirmBookingWorker) Work(ctx context.Context, job *river.Job[ConfirmB
 
 	return tx.Commit()
 }
-
-func stringPtr(s string) *string {
-	return &s
-}

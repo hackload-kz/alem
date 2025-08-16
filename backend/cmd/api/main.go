@@ -45,6 +45,8 @@ func main() {
 		dependencies.WithDB(conf),
 		dependencies.WithRiverQueue(conf),
 		dependencies.WithAuthenticationService(),
+		dependencies.WithEventProvider(conf),
+		dependencies.WithPaymentGateway(conf),
 	)
 	if err != nil {
 		slog.Error("unable to get dependencies", "error", err)
@@ -53,19 +55,35 @@ func main() {
 
 	queries := sqlc.New(deps.DB)
 
+	// Workers use main DB for business logic, River uses separate DB for job queue
 	river.AddWorker(
 		deps.RiverWorkers,
 		portriver.NewReleaseSeatsWorker(queries, deps.DB),
 	)
 
-	if err := deps.InitRiverClient(conf.RiverMaxWorkers); err != nil {
+	river.AddWorker(
+		deps.RiverWorkers,
+		portriver.NewConfirmBookingWorker(queries, deps.DB, deps.EventProvider),
+	)
+
+	river.AddWorker(
+		deps.RiverWorkers,
+		portriver.NewCancelBookingWorker(queries, deps.DB, deps.RiverClient, deps.EventProvider),
+	)
+
+	river.AddWorker(
+		deps.RiverWorkers,
+		portriver.NewRefundPaymentWorker(queries, deps.DB, deps.PaymentGateway, conf),
+	)
+
+	if err := deps.InitRiverClient(conf.River.MaxWorkers); err != nil {
 		slog.Error("unable to init river client", "error", err)
 		return
 	}
 
 	router := mux.NewRouter()
 
-	ports.HandlerWithOptions(ports.NewHttpServer(queries, deps.DB, deps.RiverClient), ports.GorillaServerOptions{
+	ports.HandlerWithOptions(ports.NewHttpServer(queries, deps.DB, deps.RiverClient, deps.PaymentGateway, conf), ports.GorillaServerOptions{
 		BaseRouter: router,
 		Middlewares: []ports.MiddlewareFunc{
 			middleware.AuthenticationMiddleware(deps.AuthenticationService),

@@ -3,6 +3,7 @@ package dependencies
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 
 	"hackload/internal/config"
 	"hackload/internal/service"
@@ -18,6 +19,7 @@ import (
 
 type Dependencies struct {
 	DB                    *sql.DB
+	RiverDB               *sql.DB
 	RiverDriver           *riversqlite.Driver
 	RiverWorkers          *river.Workers
 	RiverClient           *river.Client[*sql.Tx]
@@ -32,6 +34,9 @@ func (d *Dependencies) Close() {
 	}
 	if d.DB != nil {
 		d.DB.Close()
+	}
+	if d.RiverDB != nil {
+		d.RiverDB.Close()
 	}
 }
 
@@ -67,16 +72,37 @@ func WithDB(conf *config.Config) Option {
 
 func WithRiverQueue(conf *config.Config) Option {
 	return func(ctx context.Context, d *Dependencies) error {
-		riverdriver := riversqlite.New(d.DB)
+		riverPath := conf.River.SQLite3Path
+
+		// Create separate database connection for River
+		riverDB, err := sql.Open("sqlite3", riverPath)
+		if err != nil {
+			return err
+		}
+
+		// Test the connection and ensure database is accessible
+		if err := riverDB.Ping(); err != nil {
+			riverDB.Close()
+			return err
+		}
+
+		d.RiverDB = riverDB
+
+		riverdriver := riversqlite.New(riverDB)
 
 		migrator, err := rivermigrate.New(riverdriver, &rivermigrate.Config{})
 		if err != nil {
 			return err
 		}
 
-		if _, err := migrator.Migrate(ctx, rivermigrate.DirectionUp, nil); err != nil {
+		// Run River migrations to create necessary tables
+		slog.Info("running River migrations")
+		migrationResult, err := migrator.Migrate(ctx, rivermigrate.DirectionUp, nil)
+		if err != nil {
 			return err
 		}
+
+		slog.Info("River migrations completed", "versions_run", len(migrationResult.Versions))
 
 		d.RiverDriver = riverdriver
 		d.RiverWorkers = river.NewWorkers()
@@ -104,6 +130,28 @@ func WithAuthenticationService() Option {
 	return func(ctx context.Context, d *Dependencies) error {
 		queries := sqlc.New(d.DB)
 		d.AuthenticationService = service.NewAuthenticationService(queries)
+		return nil
+	}
+}
+
+func WithEventProvider(conf *config.Config) Option {
+	return func(ctx context.Context, d *Dependencies) error {
+		client, err := eventprovider.NewClient(conf.EventProvider.Addr)
+		if err != nil {
+			return err
+		}
+		d.EventProvider = client
+		return nil
+	}
+}
+
+func WithPaymentGateway(conf *config.Config) Option {
+	return func(ctx context.Context, d *Dependencies) error {
+		client, err := paymentgateway.NewClient(conf.PaymentProvider.Addr)
+		if err != nil {
+			return err
+		}
+		d.PaymentGateway = client
 		return nil
 	}
 }

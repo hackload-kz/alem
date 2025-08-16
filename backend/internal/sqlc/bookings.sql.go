@@ -120,6 +120,48 @@ func (q *Queries) GetBookingByPaymentOrderID(ctx context.Context, orderID string
 	return i, err
 }
 
+const getBookingOrder = `-- name: GetBookingOrder :one
+;
+
+SELECT id, booking_id, order_id, status FROM booking_orders 
+WHERE booking_id = ?1
+`
+
+func (q *Queries) GetBookingOrder(ctx context.Context, bookingID int64) (BookingOrder, error) {
+	row := q.db.QueryRowContext(ctx, getBookingOrder, bookingID)
+	var i BookingOrder
+	err := row.Scan(
+		&i.ID,
+		&i.BookingID,
+		&i.OrderID,
+		&i.Status,
+	)
+	return i, err
+}
+
+const getBookingPaymentByBookingID = `-- name: GetBookingPaymentByBookingID :one
+;
+
+SELECT id, booking_id, order_id, status, payment_id, amount, currency, team_slug FROM booking_payments 
+WHERE booking_id = ?1
+`
+
+func (q *Queries) GetBookingPaymentByBookingID(ctx context.Context, bookingID int64) (BookingPayment, error) {
+	row := q.db.QueryRowContext(ctx, getBookingPaymentByBookingID, bookingID)
+	var i BookingPayment
+	err := row.Scan(
+		&i.ID,
+		&i.BookingID,
+		&i.OrderID,
+		&i.Status,
+		&i.PaymentID,
+		&i.Amount,
+		&i.Currency,
+		&i.TeamSlug,
+	)
+	return i, err
+}
+
 const getBookingSeats = `-- name: GetBookingSeats :many
 ;
 
@@ -148,6 +190,22 @@ func (q *Queries) GetBookingSeats(ctx context.Context, bookingID int64) ([]int64
 		return nil, err
 	}
 	return items, nil
+}
+
+const getBookingTotal = `-- name: GetBookingTotal :one
+;
+
+SELECT COALESCE(SUM(CAST(s.price AS REAL) * 100), 0) as total
+FROM booking_seats bs
+JOIN seats s ON bs.seat_id = s.id
+WHERE bs.booking_id = ?1
+`
+
+func (q *Queries) GetBookingTotal(ctx context.Context, bookingID int64) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getBookingTotal, bookingID)
+	var total interface{}
+	err := row.Scan(&total)
+	return total, err
 }
 
 const getBookings = `-- name: GetBookings :many
@@ -212,6 +270,36 @@ type InsertBookingOrderParams struct {
 
 func (q *Queries) InsertBookingOrder(ctx context.Context, arg InsertBookingOrderParams) error {
 	_, err := q.db.ExecContext(ctx, insertBookingOrder, arg.BookingID, arg.OrderID, arg.Status)
+	return err
+}
+
+const insertBookingPayment = `-- name: InsertBookingPayment :exec
+;
+
+INSERT INTO booking_payments (booking_id, order_id, payment_id, status, amount, currency, team_slug)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+`
+
+type InsertBookingPaymentParams struct {
+	BookingID int64
+	OrderID   string
+	PaymentID string
+	Status    *string
+	Amount    int64
+	Currency  string
+	TeamSlug  string
+}
+
+func (q *Queries) InsertBookingPayment(ctx context.Context, arg InsertBookingPaymentParams) error {
+	_, err := q.db.ExecContext(ctx, insertBookingPayment,
+		arg.BookingID,
+		arg.OrderID,
+		arg.PaymentID,
+		arg.Status,
+		arg.Amount,
+		arg.Currency,
+		arg.TeamSlug,
+	)
 	return err
 }
 
