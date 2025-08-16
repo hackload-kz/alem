@@ -70,6 +70,7 @@ sql:
   - queries:
       - "users.sql"
       - "events.sql"
+      - "seats.sql"
     schema: "../../migrations"
     engine: "sqlite"
     gen:
