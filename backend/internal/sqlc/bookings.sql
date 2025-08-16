@@ -14,3 +14,14 @@ left join booking_seats as bs on bs.booking_id = b.id
 where 1=1
   and sqlc.arg(user_id) = b.user_id
 group by b.id, b.event_id;
+
+-- name: InsertBookingSeat :exec
+insert into booking_seats (user_id, booking_id, seat_id)
+values (sqlc.arg(user_id), sqlc.arg(booking_id), sqlc.arg(seat_id))
+;
+
+-- name: DeleteBookingSeat :execrows
+delete from booking_seats 
+where seat_id = sqlc.arg(seat_id)
+  and user_id = sqlc.arg(user_id)
+;

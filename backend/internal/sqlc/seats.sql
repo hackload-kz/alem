@@ -5,13 +5,19 @@ from seats s
 where 1=1
   and sqlc.arg(event_id) = s.event_id
   and (
-    sqlc.narg('row') = s.row 
-    or sqlc.narg('row') is null
+    cast(sqlc.narg('row') as integer) is null
+    or cast(sqlc.narg('row') as integer) = s.row 
   )
   and (
-    sqlc.narg('status') = s.status
-    or sqlc.narg('status') is null
+    cast(sqlc.narg('status') as text) is null
+    or cast(sqlc.narg('status') as text) = s.status
   )
 limit sqlc.arg(limit)
 offset sqlc.arg(offset)
+;
+
+-- name: UpdateSeatStatus :exec
+update seats 
+set status = sqlc.arg(status)
+where id = sqlc.arg(seat_id)
 ;

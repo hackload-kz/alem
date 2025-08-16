@@ -7,7 +7,6 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 )
 
 const getSeats = `-- name: GetSeats :many
@@ -17,12 +16,12 @@ from seats s
 where 1=1
   and ?1 = s.event_id
   and (
-    ?2 = s.row 
-    or ?2 is null
+    cast(?2 as integer) is null
+    or cast(?2 as integer) = s.row 
   )
   and (
-    ?3 = s.status
-    or ?3 is null
+    cast(?3 as text) is null
+    or cast(?3 as text) = s.status
   )
 limit ?5
 offset ?4
@@ -30,7 +29,7 @@ offset ?4
 
 type GetSeatsParams struct {
 	EventID int64
-	Row     sql.NullInt64
+	Row     *int64
 	Status  *string
 	Offset  int64
 	Limit   int64
@@ -71,4 +70,22 @@ func (q *Queries) GetSeats(ctx context.Context, arg GetSeatsParams) ([]Seat, err
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateSeatStatus = `-- name: UpdateSeatStatus :exec
+;
+
+update seats 
+set status = ?1
+where id = ?2
+`
+
+type UpdateSeatStatusParams struct {
+	Status string
+	SeatID int64
+}
+
+func (q *Queries) UpdateSeatStatus(ctx context.Context, arg UpdateSeatStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateSeatStatus, arg.Status, arg.SeatID)
+	return err
 }

@@ -48,6 +48,12 @@ overrides:
           type: "string"
           pointer: true
 
+      # string
+      - db_type: "integer"
+        nullable: true
+        go_type:
+          type: "int64"
+          pointer: true
 
       # any
       - db_type: "jsonb"

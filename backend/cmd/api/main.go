@@ -58,7 +58,7 @@ func main() {
 
 	queries := sqlc.New(deps.DB)
 	
-	ports.HandlerWithOptions(ports.NewHttpServer(queries), ports.GorillaServerOptions{
+	ports.HandlerWithOptions(ports.NewHttpServer(queries, deps.DB), ports.GorillaServerOptions{
 		BaseRouter: router,
 		Middlewares: []ports.MiddlewareFunc{
 			middleware.AuthenticationMiddleware(deps.AuthenticationService),

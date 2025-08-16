@@ -9,6 +9,27 @@ import (
 	"context"
 )
 
+const deleteBookingSeat = `-- name: DeleteBookingSeat :execrows
+;
+
+delete from booking_seats 
+where seat_id = ?1
+  and user_id = ?2
+`
+
+type DeleteBookingSeatParams struct {
+	SeatID int64
+	UserID int64
+}
+
+func (q *Queries) DeleteBookingSeat(ctx context.Context, arg DeleteBookingSeatParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteBookingSeat, arg.SeatID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getBookings = `-- name: GetBookings :many
 select
   b.id,
@@ -54,4 +75,20 @@ func (q *Queries) GetBookings(ctx context.Context, userID int64) ([]GetBookingsR
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertBookingSeat = `-- name: InsertBookingSeat :exec
+insert into booking_seats (user_id, booking_id, seat_id)
+values (?1, ?2, ?3)
+`
+
+type InsertBookingSeatParams struct {
+	UserID    int64
+	BookingID int64
+	SeatID    int64
+}
+
+func (q *Queries) InsertBookingSeat(ctx context.Context, arg InsertBookingSeatParams) error {
+	_, err := q.db.ExecContext(ctx, insertBookingSeat, arg.UserID, arg.BookingID, arg.SeatID)
+	return err
 }
