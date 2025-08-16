@@ -260,7 +260,13 @@ func (s *HttpServer) ListEvents(w http.ResponseWriter, r *http.Request, params L
 // Уведомить сервис, что платеж неуспешно проведен
 // (GET /api/payments/fail)
 func (s *HttpServer) NotifyPaymentFailed(w http.ResponseWriter, r *http.Request, params NotifyPaymentFailedParams) {
-	panic("not implemented") // TODO: Implement
+	/*
+
+		1. Изменить статус booking_payments на FAIL
+		2. Изменить статуc bookings на CANCELLED
+		3. Отменить в TicketProvider -> Освободить места
+
+	*/
 }
 
 // Принимать уведомления от платежного шлюза
@@ -272,7 +278,13 @@ func (s *HttpServer) OnPaymentUpdates(w http.ResponseWriter, r *http.Request) {
 // Уведомить сервис, что платеж успешно проведен
 // (GET /api/payments/success)
 func (s *HttpServer) NotifyPaymentCompleted(w http.ResponseWriter, r *http.Request, params NotifyPaymentCompletedParams) {
-	panic("not implemented") // TODO: Implement
+	/*
+
+		1. Изменить статус booking_payments на SUCCESS
+		2. Изменить статуc bookings на CONFIRMED
+		3. TicketProvider Confirm Order -> Поменять статус мест на SOLD
+
+	*/
 }
 
 // Получить список мест

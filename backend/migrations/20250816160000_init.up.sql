@@ -11,6 +11,8 @@ create table "users" (
     "last_logged_in" timestamp not null
 );
 
+CREATE INDEX idx_users_email ON users(email);
+
 create table "events_archive" (
     "id" integer primary key,
     "title" text,
@@ -29,6 +31,10 @@ create table "events_archive" (
     -- Enum: 'Билеттер', 'TicketRu', 'EventWorld', 'ShowTime'
     "provider" text
 );
+
+CREATE INDEX idx_events_date_type ON events_archive(date_start);
+CREATE INDEX idx_events_title ON events_archive(title);
+CREATE INDEX idx_events_description ON events_archive(description);
 
 create table "seats" (
     "id" integer primary key autoincrement,
@@ -50,6 +56,12 @@ create table "seats" (
     "status" text not null
 );
 
+
+CREATE INDEX idx_seats_event ON seats(event_id);
+CREATE INDEX idx_seats_row ON seats(row);
+CREATE INDEX idx_seats_status ON seats(status);
+CREATE INDEX idx_seats_external ON seats(external_id) WHERE external_id IS NOT NULL;
+
 create table "bookings" (
     "id" integer primary key autoincrement,
     "user_id" integer not null references "users"("user_id"),
@@ -58,6 +70,9 @@ create table "bookings" (
     -- статус: CREATED, PAYMENT_INITIATED, CONFIRMED, CANCELLED
     "status" text not null default 'CREATED'
 );
+
+CREATE INDEX idx_bookings_user ON bookings(user_id);
+CREATE INDEX idx_bookings_event ON bookings(event_id);
 
 create table "booking_seats" (
     "user_id" integer not null references "users"("user_id"),
@@ -71,6 +86,9 @@ create table "booking_seats" (
     unique ("seat_id")
 );
 
+CREATE INDEX idx_booking_seats_booking ON booking_seats(booking_id);
+CREATE INDEX idx_booking_seats_user ON booking_seats(user_id);
+
 create table "booking_payments" (
     "id" integer primary key autoincrement,
     "booking_id" integer not null references "bookings"("id"),
@@ -80,6 +98,9 @@ create table "booking_payments" (
     "status" text default 'INIT'
 );
 
+CREATE INDEX idx_booking_payments_order ON booking_payments(order_id);
+CREATE INDEX idx_booking_payments_booking ON booking_payments(booking_id);
+
 create table "booking_orders" (
     "id" integer primary key autoincrement,
     "booking_id" integer not null references "bookings"("id"),
@@ -88,3 +109,6 @@ create table "booking_orders" (
     -- статус: STARTED, SUBMITTED, CONFIRMED, CANCELLED
     "status" text default 'INIT'
 );
+
+CREATE INDEX idx_booking_orders_booking ON booking_orders(booking_id);
+CREATE INDEX idx_booking_orders_order ON booking_orders(order_id);

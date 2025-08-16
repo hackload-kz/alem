@@ -177,6 +177,24 @@ func (q *Queries) GetBookings(ctx context.Context, userID int64) ([]GetBookingsR
 	return items, nil
 }
 
+const insertBookingOrder = `-- name: InsertBookingOrder :exec
+;
+
+INSERT INTO booking_orders (booking_id, order_id, status)
+VALUES (?1, ?2, ?3)
+`
+
+type InsertBookingOrderParams struct {
+	BookingID int64
+	OrderID   string
+	Status    *string
+}
+
+func (q *Queries) InsertBookingOrder(ctx context.Context, arg InsertBookingOrderParams) error {
+	_, err := q.db.ExecContext(ctx, insertBookingOrder, arg.BookingID, arg.OrderID, arg.Status)
+	return err
+}
+
 const insertBookingSeat = `-- name: InsertBookingSeat :exec
 insert into booking_seats (user_id, booking_id, seat_id)
 values (?1, ?2, ?3)
@@ -190,5 +208,23 @@ type InsertBookingSeatParams struct {
 
 func (q *Queries) InsertBookingSeat(ctx context.Context, arg InsertBookingSeatParams) error {
 	_, err := q.db.ExecContext(ctx, insertBookingSeat, arg.UserID, arg.BookingID, arg.SeatID)
+	return err
+}
+
+const updateBookingStatus = `-- name: UpdateBookingStatus :exec
+;
+
+UPDATE bookings 
+SET status = ?1
+WHERE id = ?2
+`
+
+type UpdateBookingStatusParams struct {
+	Status    string
+	BookingID int64
+}
+
+func (q *Queries) UpdateBookingStatus(ctx context.Context, arg UpdateBookingStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookingStatus, arg.Status, arg.BookingID)
 	return err
 }

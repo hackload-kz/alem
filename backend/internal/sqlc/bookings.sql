@@ -51,3 +51,14 @@ where booking_id = sqlc.arg(booking_id)
 delete from booking_seats 
 where booking_id = sqlc.arg(booking_id)
 ;
+
+-- name: UpdateBookingStatus :exec
+UPDATE bookings 
+SET status = sqlc.arg(status)
+WHERE id = sqlc.arg(booking_id)
+;
+
+-- name: InsertBookingOrder :exec
+INSERT INTO booking_orders (booking_id, order_id, status)
+VALUES (sqlc.arg(booking_id), sqlc.arg(order_id), sqlc.arg(status))
+;

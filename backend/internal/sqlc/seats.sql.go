@@ -10,6 +10,28 @@ import (
 	"strings"
 )
 
+const getSeatByID = `-- name: GetSeatByID :one
+;
+
+select id, event_id, external_id, "row", number, price, status from seats
+where id = ?1
+`
+
+func (q *Queries) GetSeatByID(ctx context.Context, seatID int64) (Seat, error) {
+	row := q.db.QueryRowContext(ctx, getSeatByID, seatID)
+	var i Seat
+	err := row.Scan(
+		&i.ID,
+		&i.EventID,
+		&i.ExternalID,
+		&i.Row,
+		&i.Number,
+		&i.Price,
+		&i.Status,
+	)
+	return i, err
+}
+
 const getSeats = `-- name: GetSeats :many
 select
   id, event_id, external_id, "row", number, price, status

@@ -27,3 +27,8 @@ update seats
 set status = sqlc.arg(status)
 where id IN (sqlc.slice(seat_ids))
 ;
+
+-- name: GetSeatByID :one
+select * from seats
+where id = sqlc.arg(seat_id)
+;
