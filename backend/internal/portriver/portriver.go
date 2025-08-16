@@ -11,6 +11,7 @@ import (
 
 type ReleaseSeatsArgs struct {
 	BookingID int64
+	StatusEq  *string
 }
 
 func (ReleaseSeatsArgs) Kind() string { return "booking.release_seats" }
@@ -42,6 +43,10 @@ func (w *ReleaseSeatsWorker) Work(ctx context.Context, job *river.Job[ReleaseSea
 	booking, err := qtx.GetBooking(ctx, job.Args.BookingID)
 	if err != nil {
 		return err
+	}
+
+	if job.Args.StatusEq != nil && *job.Args.StatusEq == *booking.Status {
+		return nil
 	}
 
 	// 2. Get all seat IDs for this booking
