@@ -61,10 +61,41 @@ type Option func(context.Context, *Dependencies) error
 
 func WithDB(conf *config.Config) Option {
 	return func(ctx context.Context, d *Dependencies) error {
-		db, err := sql.Open("sqlite3", conf.SQLite3Path)
+		// Apply SQLite performance optimizations based on https://turriate.com/articles/making-sqlite-faster-in-go
+		// 1. Use optimized connection string with shared cache and WAL mode
+		dsn := conf.SQLite3Path + "?cache=shared&mode=rwc&_journal_mode=WAL&_synchronous=NORMAL&_cache_size=-64000&_foreign_keys=1"
+
+		db, err := sql.Open("sqlite3", dsn)
 		if err != nil {
 			return err
 		}
+
+		// 2. Configure connection pool for better concurrency
+		db.SetMaxOpenConns(10)   // Limit concurrent connections
+		db.SetMaxIdleConns(5)    // Keep connections alive
+		db.SetConnMaxLifetime(0) // No connection expiry (long-lived connections)
+		db.SetConnMaxIdleTime(0) // No idle timeout
+
+		// Test connection
+		if err := db.Ping(); err != nil {
+			db.Close()
+			return err
+		}
+
+		// 3. Apply additional performance PRAGMA statements
+		pragmas := []string{
+			"PRAGMA temp_store = MEMORY",   // Store temp tables in memory
+			"PRAGMA mmap_size = 268435456", // 256MB memory-mapped I/O
+			"PRAGMA page_size = 32768",     // Larger page size for better performance
+		}
+
+		for _, pragma := range pragmas {
+			if _, err := db.Exec(pragma); err != nil {
+				slog.Warn("failed to set pragma", "pragma", pragma, "error", err)
+				// Continue even if pragma fails - not critical
+			}
+		}
+
 		d.DB = db
 		return nil
 	}
@@ -74,11 +105,20 @@ func WithRiverQueue(conf *config.Config) Option {
 	return func(ctx context.Context, d *Dependencies) error {
 		riverPath := conf.River.SQLite3Path
 
+		// Apply SQLite performance optimizations for River database too
+		riverDSN := riverPath + "?cache=shared&mode=rwc&_journal_mode=WAL&_synchronous=NORMAL&_cache_size=-32000&_foreign_keys=1"
+
 		// Create separate database connection for River
-		riverDB, err := sql.Open("sqlite3", riverPath)
+		riverDB, err := sql.Open("sqlite3", riverDSN)
 		if err != nil {
 			return err
 		}
+
+		// Configure connection pool for River (smaller than main DB since it's job queue focused)
+		riverDB.SetMaxOpenConns(5)
+		riverDB.SetMaxIdleConns(2)
+		riverDB.SetConnMaxLifetime(0)
+		riverDB.SetConnMaxIdleTime(0)
 
 		// Test the connection and ensure database is accessible
 		if err := riverDB.Ping(); err != nil {

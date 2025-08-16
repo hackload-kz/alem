@@ -58,9 +58,10 @@ create table "seats" (
 
 
 CREATE INDEX idx_seats_event ON seats(event_id);
-CREATE INDEX idx_seats_row ON seats(row);
-CREATE INDEX idx_seats_status ON seats(status);
 CREATE INDEX idx_seats_external ON seats(external_id) WHERE external_id IS NOT NULL;
+CREATE INDEX idx_seats_event_row_status ON seats(event_id, status, row);
+CREATE INDEX idx_seats_event_status_free ON seats(event_id, row, number) 
+  WHERE status = 'FREE';
 
 create table "bookings" (
     "id" integer primary key autoincrement,

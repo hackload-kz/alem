@@ -1,3 +1,5 @@
 *.sqlite3
 *.db
 .env
+*-shm
+*-wal
