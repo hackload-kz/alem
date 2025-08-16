@@ -76,8 +76,42 @@ func (s *HttpServer) ListBookings(w http.ResponseWriter, r *http.Request) {
 
 // Создать бронирование
 // (POST /api/bookings)
+// При создании необходимо возвращать 201
 func (s *HttpServer) CreateBooking(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented") // TODO: Implement
+	session, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		fmt.Println("ERROR: middleware.GetUserFromContext: false")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var req CreateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Println("ERROR: json.NewDecoder:", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	bookingID, err := s.queries.CreateBooking(r.Context(), sqlc.CreateBookingParams{
+		UserID:  session.UserID,
+		EventID: req.EventId,
+	})
+	if err != nil {
+		fmt.Println("ERROR: s.queries.CreateBooking:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response := CreateBookingResponse{
+		Id: bookingID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Отменить бронирование
