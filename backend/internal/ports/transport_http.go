@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -349,9 +350,6 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lol, _ := io.ReadAll(resp.Body)
-	fmt.Printf("resp: %#v\n", string(lol))
-
 	if resp.StatusCode != 200 {
 		fmt.Printf("ERROR: payment gateway returned status: %d\n", resp.StatusCode)
 		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
@@ -522,6 +520,8 @@ func (s *HttpServer) NotifyPaymentFailed(w http.ResponseWriter, r *http.Request,
 // Принимать уведомления от платежного шлюза
 // (POST /api/payments/notifications)
 func (s *HttpServer) OnPaymentUpdates(w http.ResponseWriter, r *http.Request) {
+	b, err := io.ReadAll(r.Body)
+	slog.Info("payment notification", "err", err, "body", string(b))
 }
 
 // Уведомить сервис, что платеж успешно проведен
