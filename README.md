@@ -496,3 +496,117 @@ sequenceDiagram
 ```
 
 </details>
+
+## Модель данных
+
+Основные сущности: пользователи, события и места.
+
+```sql
+CREATE TABLE "users" (
+    "user_id" INTEGER PRIMARY KEY,
+    "email" TEXT UNIQUE NOT NULL,
+    "password_hash" TEXT NOT NULL,
+    "password_plain" TEXT,  -- For testing purposes only, would not exist in production
+    "first_name" TEXT NOT NULL,
+    "surname" TEXT NOT NULL,
+    "birthday" DATE,
+    "registered_at" TIMESTAMP NOT NULL,
+    "is_active" BOOLEAN NOT NULL,
+    "last_logged_in" TIMESTAMP NOT NULL
+);
+
+CREATE TABLE "events_archive" (
+    "id" INTEGER PRIMARY KEY,
+    "title" TEXT,
+    "description" TEXT,
+
+    -- Enum: 'film', 'cinema', 'stage', 'game'
+    "type" TEXT, 
+
+    -- Пример: 2025-12-15T20:00:00
+    "datetime_start" TIMESTAMP NOT NULL, 
+
+    -- Используется для поиска
+    -- Пример: 2025-12-15
+    "date_start" DATE GENERATED ALWAYS AS (date("datetime_start")) STORED,
+
+    -- Enum: 'Билеттер', 'TicketRu', 'EventWorld', 'ShowTime'
+    "provider" TEXT
+);
+
+CREATE TABLE "seats" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "event_id" INTEGER NOT NULL references "events_archive"("id"),
+
+    -- ID в Ticket Provider Service
+    "external_id" TEXT,
+    
+    -- Ряд: номер ряда (integer)
+    "row" INTEGER NOT NULL,
+    
+    -- Номер: номер места в ряду (integer)
+    "number" INTEGER NOT NULL,
+
+    -- Пример: 15.00
+    "price" TEXT NOT NULL,
+    
+    -- Статус: FREE, RESERVED, SOLD
+    "status" TEXT NOT NULL
+);
+```
+
+Бронирования пользователей:
+
+```sql
+CREATE TABLE "bookings" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "user_id" INTEGER NOT NULL references "users"("user_id"),
+    "event_id" INTEGER NOT NULL references "events_archive"("id"),
+
+    -- Статус: CREATED, PAYMENT_INITIATED, CONFIRMED, CANCELLED
+    "status" TEXT DEFAULT 'CREATED'
+);
+
+CREATE TABLE "booking_seats" (
+    "user_id" INTEGER NOT NULL references "users"("user_id"),
+    "booking_id" INTEGER NOT NULL references "bookings"("id"),
+    "seat_id" INTEGER NOT NULL references "seats"("id"),
+
+    -- Композитный первичный ключ
+    PRIMARY KEY ("booking_id", "seat_id"),
+    
+    -- Уникальность места во всей системе
+    UNIQUE ("seat_id")
+);
+```
+
+Оплаты пользователей:
+
+```sql
+create table "booking_payments" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "booking_id" INTEGER NOT NULL references "bookings"("id"),
+    "order_id" TEXT NOT NULL,
+
+    -- Статус: INIT, SUCCESS, FAIL
+    "status" TEXT DEFAULT 'INIT'
+);
+```
+
+Заказы пользователей в Ticket Provider Service:
+
+```sql
+create table "booking_orders" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "booking_id" INTEGER NOT NULL references "bookings"("id"),
+    "order_id" TEXT NOT NULL,
+
+    -- Статус: STARTED, SUBMITTED, CONFIRMED, CANCELLED
+    "status" TEXT DEFAULT 'INIT'
+);
+```
+
+
+## Заметки
+
+- Проводить предзагрузку всех мест из Ticketing Provider Service
