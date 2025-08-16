@@ -23,12 +23,12 @@ func AuthenticationMiddleware(authService service.AuthenticationService) func(ht
 				return
 			}
 
-			if !strings.HasPrefix(authHeader, "Bearer ") {
+			if !strings.HasPrefix(authHeader, "Basic ") {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			token := strings.TrimPrefix(authHeader, "Bearer ")
+			token := strings.TrimPrefix(authHeader, "Basic ")
 			if token == "" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return

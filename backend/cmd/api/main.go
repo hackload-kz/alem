@@ -16,6 +16,7 @@ import (
 	"hackload/internal/dependencies"
 	"hackload/internal/middleware"
 	"hackload/internal/ports"
+	"hackload/internal/sqlc"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/sync/errgroup"
@@ -55,7 +56,9 @@ func main() {
 
 	router := mux.NewRouter()
 
-	ports.HandlerWithOptions(ports.NewHttpServer(), ports.GorillaServerOptions{
+	queries := sqlc.New(deps.DB)
+	
+	ports.HandlerWithOptions(ports.NewHttpServer(queries), ports.GorillaServerOptions{
 		BaseRouter: router,
 		Middlewares: []ports.MiddlewareFunc{
 			middleware.AuthenticationMiddleware(deps.AuthenticationService),

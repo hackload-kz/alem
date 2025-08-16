@@ -1,11 +1,20 @@
 package ports
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
 
-type HttpServer struct{}
+	"hackload/internal/sqlc"
+)
 
-func NewHttpServer() ServerInterface {
-	return &HttpServer{}
+type HttpServer struct {
+	queries *sqlc.Queries
+}
+
+func NewHttpServer(queries *sqlc.Queries) ServerInterface {
+	return &HttpServer{
+		queries: queries,
+	}
 }
 
 // Получить список бронирований
@@ -35,7 +44,51 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 // Получить список событий
 // (GET /api/events)
 func (s *HttpServer) ListEvents(w http.ResponseWriter, r *http.Request, params ListEventsParams) {
-	panic("not implemented") // TODO: Implement
+	page := int64(1)
+	pageSize := int64(10)
+
+	if params.Page != nil && *params.Page > 0 {
+		page = int64(*params.Page)
+	}
+	if params.PageSize != nil && *params.PageSize > 0 && *params.PageSize <= 20 {
+		pageSize = int64(*params.PageSize)
+	}
+
+	offset := (page - 1) * pageSize
+
+	var dateStr *string
+	if params.Date != nil {
+		dateString := params.Date.String()
+		dateStr = &dateString
+	}
+
+	events, err := s.queries.GetEventsList(r.Context(), sqlc.GetEventsListParams{
+		Query:  params.Query,
+		Date:   dateStr,
+		Offset: offset,
+		Limit:  pageSize,
+	})
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response := make(ListEventsResponse, 0, len(events))
+	for _, event := range events {
+		eventItem := ListEventsResponseItem{
+			Id: event.ID,
+		}
+		if event.Title != nil {
+			eventItem.Title = *event.Title
+		}
+		response = append(response, eventItem)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Уведомить сервис, что платеж неуспешно проведен

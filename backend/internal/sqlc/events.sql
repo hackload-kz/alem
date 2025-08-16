@@ -6,8 +6,8 @@ from events_archive e
 where 1=1
     and (
         cast(sqlc.narg(query) as text) is null 
-        or cast(sqlc.narg(query) as text) like '%' || e.title || '%'
-        or cast(sqlc.narg(query) as text) like '%' || e.description || '%'
+        or e.title like '%' || cast(sqlc.narg(query) as text) || '%'
+        or e.description like '%' || cast(sqlc.narg(query) as text) || '%'
     )
     and (
         cast(sqlc.narg(date) as date) is null 

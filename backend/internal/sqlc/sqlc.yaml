@@ -55,22 +55,12 @@ overrides:
         go_type:
           type: "any"
 
-      # # int
-      # - db_type: "pg_catalog.int4"
-      #   go_type:
-      #     type: "int"
-      
-      # - db_type: "pg_catalog.int4"
-      #   nullable: true
-      #   go_type:
-      #     type: "int"
-      #     pointer: true
-
 sql:
   - queries:
       - "users.sql"
       - "events.sql"
       - "seats.sql"
+      - "bookings.sql"
     schema: "../../migrations"
     engine: "sqlite"
     gen:
@@ -78,4 +68,3 @@ sql:
         out: "."
         package: "sqlc"
         omit_unused_structs: true
-        # sql_package: "pgx/v5"
