@@ -21,23 +21,56 @@ func NewHttpServer(queries *sqlc.Queries) ServerInterface {
 
 // Получить список бронирований
 // (GET /api/bookings)
+// Возвращает массив Bookings с массивом seats
+// ```
+// [
+//
+//	{
+//	  "id": 456,
+//	  "event_id": 123,
+//	  "seats": [
+//	    {"id": 789}
+//	  ]
+//	}
+//
+// ]
+// ```
 func (s *HttpServer) ListBookings(w http.ResponseWriter, r *http.Request) {
 	session, ok := middleware.GetUserFromContext(r.Context())
-	fmt.Printf("%#v\n", session)
 	if !ok {
+		fmt.Println("ERROR: middleware.GetUserFromContext: false")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	bookings, err := s.queries.GetBookings(r.Context(), session.UserID)
-	fmt.Printf("%#v, %v\n", bookings, err)
 	if err != nil {
+		fmt.Println("ERROR: s.queries.GetBookings:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
+	response := make(ListBookingsResponse, 0, len(bookings))
 	for _, booking := range bookings {
-		fmt.Printf("%#v\n", booking)
+		var seats []ListEventsResponseItemSeat
+		if err := json.Unmarshal([]byte(booking.Seats), &seats); err != nil {
+			fmt.Println("ERROR: json.Unmarshal seats:", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		item := ListBookingsResponseItem{
+			Id:      booking.ID,
+			EventId: booking.EventID,
+			Seats:   &seats,
+		}
+		response = append(response, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
 
