@@ -774,7 +774,61 @@ func (s *HttpServer) SelectSeat(w http.ResponseWriter, r *http.Request) {
 // Получить аналитику продаж для события
 // (GET /api/analytics)
 func (s *HttpServer) GetEventAnalytics(w http.ResponseWriter, r *http.Request, params GetEventAnalyticsParams) {
-	panic("not implemented") // TODO: Implement
+	ctx := r.Context()
+
+	// Validate required parameter
+	if params.Id == 0 {
+		http.Error(w, "Missing required parameter: id", http.StatusBadRequest)
+		return
+	}
+
+	eventID := params.Id
+
+	// Get analytics data from database
+	analytics, err := s.queries.GetEventAnalytics(ctx, eventID)
+	if err != nil {
+		http.Error(w, "Failed to get event analytics", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert *float64 to int64, defaulting to 0 if null
+	soldSeats := int64(0)
+	if analytics.SoldSeats != nil {
+		soldSeats = int64(*analytics.SoldSeats)
+	}
+
+	reservedSeats := int64(0)
+	if analytics.ReservedSeats != nil {
+		reservedSeats = int64(*analytics.ReservedSeats)
+	}
+
+	freeSeats := int64(0)
+	if analytics.FreeSeats != nil {
+		freeSeats = int64(*analytics.FreeSeats)
+	}
+
+	// Convert total revenue to string with 2 decimal places
+	totalRevenue := fmt.Sprintf("%.2f", analytics.TotalRevenue)
+
+	// Prepare response
+	response := map[string]any{
+		"event_id":       eventID,
+		"total_seats":    analytics.TotalSeats,
+		"sold_seats":     soldSeats,
+		"reserved_seats": reservedSeats,
+		"free_seats":     freeSeats,
+		"total_revenue":  totalRevenue,
+		"bookings_count": analytics.BookingsCount,
+	}
+
+	// Set content type and send response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Сбросить базу данных

@@ -9,6 +9,50 @@ import (
 	"context"
 )
 
+const getEventAnalytics = `-- name: GetEventAnalytics :one
+;
+
+select
+    COUNT(*) as total_seats,
+    SUM(CASE WHEN s.status = 'SOLD' THEN 1 ELSE 0 END) as sold_seats,
+    SUM(CASE WHEN s.status = 'RESERVED' THEN 1 ELSE 0 END) as reserved_seats,
+    SUM(CASE WHEN s.status = 'FREE' THEN 1 ELSE 0 END) as free_seats,
+    cast(
+        (COALESCE(SUM(CASE WHEN s.status = 'SOLD' THEN CAST(s.price AS REAL) ELSE 0 END), 0))
+        as real
+    ) as total_revenue,
+    (
+        select COUNT(DISTINCT b.id) 
+        from bookings b 
+        where b.event_id = ?1
+    ) as bookings_count
+from seats s
+where s.event_id = ?1
+`
+
+type GetEventAnalyticsRow struct {
+	TotalSeats    int64
+	SoldSeats     *float64
+	ReservedSeats *float64
+	FreeSeats     *float64
+	TotalRevenue  float64
+	BookingsCount int64
+}
+
+func (q *Queries) GetEventAnalytics(ctx context.Context, eventID int64) (GetEventAnalyticsRow, error) {
+	row := q.db.QueryRowContext(ctx, getEventAnalytics, eventID)
+	var i GetEventAnalyticsRow
+	err := row.Scan(
+		&i.TotalSeats,
+		&i.SoldSeats,
+		&i.ReservedSeats,
+		&i.FreeSeats,
+		&i.TotalRevenue,
+		&i.BookingsCount,
+	)
+	return i, err
+}
+
 const getEventsList = `-- name: GetEventsList :many
 select
     e.id,
