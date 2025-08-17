@@ -17,7 +17,7 @@ type Config struct {
 
 	// API
 	API struct {
-		Port string `env:"PORT, default=8081"`
+		Port string `env:"PORT, default=8080"`
 		Addr string `env:"ADDR"`
 	} `env:", prefix=API_"`
 
