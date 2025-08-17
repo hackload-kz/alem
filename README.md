@@ -1,5 +1,21 @@
 # HackLoad
 
+## Важные репозиторий
+
+Внешн. сервисы:
+- https://github.com/hackload-kz/service-provider
+- https://github.com/hackload-kz/payment
+
+DeepWiki:
+- https://deepwiki.com/hackload-kz/service-provider
+- https://deepwiki.com/hackload-kz/payment
+
+Данные:
+- https://github.com/hackload-kz/data
+
+Инфра:
+- https://github.com/hackload-kz/infra
+- https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs
 
 ## Billetter API
 
