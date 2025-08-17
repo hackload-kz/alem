@@ -45,6 +45,40 @@ func (q *Queries) CreateBooking(ctx context.Context, arg CreateBookingParams) (i
 	return id, err
 }
 
+const deleteAllBookingOrders = `-- name: DeleteAllBookingOrders :execresult
+;
+
+DELETE FROM booking_orders
+`
+
+func (q *Queries) DeleteAllBookingOrders(ctx context.Context) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteAllBookingOrders)
+}
+
+const deleteAllBookingPayments = `-- name: DeleteAllBookingPayments :execresult
+DELETE FROM booking_payments
+`
+
+func (q *Queries) DeleteAllBookingPayments(ctx context.Context) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteAllBookingPayments)
+}
+
+const deleteAllBookingSeats = `-- name: DeleteAllBookingSeats :execresult
+DELETE FROM booking_seats
+`
+
+func (q *Queries) DeleteAllBookingSeats(ctx context.Context) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteAllBookingSeats)
+}
+
+const deleteAllBookings = `-- name: DeleteAllBookings :execresult
+DELETE FROM bookings
+`
+
+func (q *Queries) DeleteAllBookings(ctx context.Context) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteAllBookings)
+}
+
 const deleteBookingSeat = `-- name: DeleteBookingSeat :execrows
 ;
 

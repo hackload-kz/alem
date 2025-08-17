@@ -102,3 +102,15 @@ WHERE bs.booking_id = sqlc.arg(booking_id)
 SELECT * FROM booking_payments 
 WHERE booking_id = sqlc.arg(booking_id)
 ;
+
+-- name: DeleteAllBookingOrders :execresult
+DELETE FROM booking_orders;
+
+-- name: DeleteAllBookingPayments :execresult
+DELETE FROM booking_payments;
+
+-- name: DeleteAllBookingSeats :execresult
+DELETE FROM booking_seats;
+
+-- name: DeleteAllBookings :execresult
+DELETE FROM bookings;

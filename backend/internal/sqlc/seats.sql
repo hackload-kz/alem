@@ -32,3 +32,10 @@ where id IN (sqlc.slice(seat_ids))
 select * from seats
 where id = sqlc.arg(seat_id)
 ;
+
+-- name: DeleteAllSeats :execresult
+DELETE FROM seats;
+
+-- name: InsertSeat :exec
+INSERT INTO seats (event_id, external_id, row, number, price, status)
+VALUES (sqlc.arg(event_id), sqlc.arg(external_id), sqlc.arg(row), sqlc.arg(number), sqlc.arg(price), sqlc.arg(status));

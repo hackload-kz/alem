@@ -7,6 +7,11 @@ tasks:
     desc: Запуск API
     ignore_error: true
     cmd: go run ./cmd/api -m ./migrations
+  
+  cmd:preloader:
+    desc: Запуск предзагрузщика места
+    ignore_error: true
+    cmd: go run ./cmd/preloader
 
   migrate:create:
     desc: |
