@@ -1,9 +1,9 @@
-CREATE VIRTUAL TABLE "events_archive_fts" USING fts5 (
-    id,
+CREATE VIRTUAL TABLE events_archive_fts USING fts5(
+    id UNINDEXED,
     title,
-    description
+    description,
+    content='events_archive',
+    content_rowid='id'
 );
 
--- Note: The following commented-out section is for populating the FTS table.
--- INSERT INTO events_archive_fts (id, title, description)
--- SELECT id, title, description FROM events_archive;
+INSERT INTO events_archive_fts(events_archive_fts) VALUES('rebuild');
