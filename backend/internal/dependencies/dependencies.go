@@ -26,6 +26,7 @@ type Dependencies struct {
 	EventProvider         eventprovider.ClientInterface
 	PaymentGateway        paymentgateway.ClientInterface
 	AuthenticationService service.AuthenticationService
+	ResetService          service.ResetService
 }
 
 func (d *Dependencies) Close() {
@@ -170,6 +171,25 @@ func WithAuthenticationService() Option {
 	return func(ctx context.Context, d *Dependencies) error {
 		queries := sqlc.New(d.DB)
 		d.AuthenticationService = service.NewAuthenticationService(queries)
+		return nil
+	}
+}
+
+func WithResetService(conf *config.Config) Option {
+	return func(ctx context.Context, d *Dependencies) error {
+		queries := sqlc.New(d.DB)
+
+		// Create EventProvider client with responses
+		epClient, err := eventprovider.NewClientWithResponses(conf.EventProvider.Addr)
+		if err != nil {
+			return err
+		}
+
+		d.ResetService = service.NewResetService(
+			queries,
+			d.DB,
+			epClient,
+		)
 		return nil
 	}
 }

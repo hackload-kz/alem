@@ -44,9 +44,10 @@ func main() {
 		ctx,
 		dependencies.WithDB(conf),
 		dependencies.WithRiverQueue(conf),
-		dependencies.WithAuthenticationService(),
 		dependencies.WithEventProvider(conf),
 		dependencies.WithPaymentGateway(conf),
+		dependencies.WithAuthenticationService(),
+		dependencies.WithResetService(conf),
 	)
 	if err != nil {
 		slog.Error("unable to get dependencies", "error", err)
@@ -83,12 +84,20 @@ func main() {
 
 	router := mux.NewRouter()
 
-	ports.HandlerWithOptions(ports.NewHttpServer(queries, deps.DB, deps.RiverClient, deps.PaymentGateway, conf), ports.GorillaServerOptions{
-		BaseRouter: router,
-		Middlewares: []ports.MiddlewareFunc{
-			middleware.AuthenticationMiddleware(deps.AuthenticationService),
-		},
-	})
+	ports.HandlerWithOptions(
+		ports.NewHttpServer(
+			queries,
+			deps.DB,
+			deps.RiverClient,
+			deps.PaymentGateway,
+			deps.ResetService,
+			conf,
+		), ports.GorillaServerOptions{
+			BaseRouter: router,
+			Middlewares: []ports.MiddlewareFunc{
+				middleware.AuthenticationMiddleware(deps.AuthenticationService),
+			},
+		})
 
 	//////////////
 

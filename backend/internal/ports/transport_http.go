@@ -15,6 +15,7 @@ import (
 	"hackload/internal/middleware"
 	"hackload/internal/paymenttoken"
 	"hackload/internal/portriver"
+	"hackload/internal/service"
 	"hackload/internal/sqlc"
 	"hackload/pkg/paymentgateway"
 
@@ -26,15 +27,24 @@ type HttpServer struct {
 	db             *sql.DB
 	riverClient    *river.Client[*sql.Tx]
 	paymentGateway paymentgateway.ClientInterface
+	resetService   service.ResetService
 	config         *config.Config
 }
 
-func NewHttpServer(queries *sqlc.Queries, db *sql.DB, riverClient *river.Client[*sql.Tx], paymentGateway paymentgateway.ClientInterface, config *config.Config) ServerInterface {
+func NewHttpServer(
+	queries *sqlc.Queries,
+	db *sql.DB,
+	riverClient *river.Client[*sql.Tx],
+	paymentGateway paymentgateway.ClientInterface,
+	resetService service.ResetService,
+	config *config.Config,
+) ServerInterface {
 	return &HttpServer{
 		queries:        queries,
 		db:             db,
 		riverClient:    riverClient,
 		paymentGateway: paymentGateway,
+		resetService:   resetService,
 		config:         config,
 	}
 }
@@ -759,4 +769,20 @@ func (s *HttpServer) SelectSeat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// Получить аналитику продаж для события
+// (GET /api/analytics)
+func (s *HttpServer) GetEventAnalytics(w http.ResponseWriter, r *http.Request, params GetEventAnalyticsParams) {
+	panic("not implemented") // TODO: Implement
+}
+
+// Сбросить базу данных
+// (POST /api/reset)
+func (s *HttpServer) ResetDatabase(w http.ResponseWriter, r *http.Request) {
+	if err := s.resetService.Reset(r.Context()); err != nil {
+		fmt.Printf("ERROR: failed to reset: %v", err)
+		http.Error(w, "Could not reset", http.StatusInternalServerError)
+		return
+	}
 }

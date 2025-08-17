@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Билеттер API",
-    "version": "1.0"
+    "version": "1.1"
   },
   "servers": [
     {
@@ -243,6 +243,48 @@
             }
           }
         }
+      },
+      "AnalyticsResponse": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sold_seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reserved_seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "free_seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_revenue": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "bookings_count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "event_id",
+          "total_seats",
+          "sold_seats",
+          "reserved_seats",
+          "free_seats",
+          "total_revenue",
+          "bookings_count"
+        ]
       }
     }
   },
@@ -617,6 +659,55 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/analytics": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "GetEventAnalytics",
+        "summary": "Получить аналитику продаж для события",
+        "description": "Возвращает информацию о продажах для конкретного события",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "description": "ID события для получения аналитики",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Аналитика успешно получена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reset": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "operationId": "ResetDatabase",
+        "summary": "Сбросить базу данных",
+        "description": "Сбрасывает базу данных в начальное состояние",
+        "responses": {
+          "200": {
+            "description": "База данных успешно сброшена"
           }
         }
       }
