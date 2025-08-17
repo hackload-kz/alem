@@ -1,6 +1,7 @@
 package ports
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -343,6 +344,9 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 		Description: stringPtr("Payment for booking " + strconv.FormatInt(req.BookingId, 10)),
 	}
 
+	pr, _ := json.Marshal(paymentReq)
+	fmt.Println(string(pr))
+
 	resp, err := s.paymentGateway.PostApiV1PaymentInitInit(r.Context(), paymentReq)
 	if err != nil {
 		fmt.Printf("ERROR: failed to init payment: %v\n", err)
@@ -350,17 +354,23 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if resp.StatusCode != 200 {
-		fmt.Printf("ERROR: payment gateway returned status: %d\n", resp.StatusCode)
-		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
-		return
-	}
+	b, _ := io.ReadAll(resp.Body)
+
+	resp.Body = io.NopCloser(bytes.NewBuffer(b))
 
 	// Parse payment response
 	var paymentResp paymentgateway.PaymentInitResponseDto
 	if err := json.NewDecoder(resp.Body).Decode(&paymentResp); err != nil {
 		fmt.Printf("ERROR: failed to decode payment response: %v\n", err)
 		http.Error(w, "Failed to process payment response", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("%#v\n", string(b))
+
+	if resp.StatusCode != 200 {
+		fmt.Printf("ERROR: payment gateway returned status: %d\n", resp.StatusCode)
+		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
 		return
 	}
 
