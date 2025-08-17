@@ -27,6 +27,17 @@ const (
 	ListSeatsParamsStatusSOLD     ListSeatsParamsStatus = "SOLD"
 )
 
+// AnalyticsResponse defines model for AnalyticsResponse.
+type AnalyticsResponse struct {
+	BookingsCount int32  `json:"bookings_count"`
+	EventId       int64  `json:"event_id"`
+	FreeSeats     int32  `json:"free_seats"`
+	ReservedSeats int32  `json:"reserved_seats"`
+	SoldSeats     int32  `json:"sold_seats"`
+	TotalRevenue  string `json:"total_revenue"`
+	TotalSeats    int32  `json:"total_seats"`
+}
+
 // CancelBookingRequest defines model for CancelBookingRequest.
 type CancelBookingRequest struct {
 	BookingId int64 `json:"booking_id"`
@@ -106,6 +117,12 @@ type SelectSeatRequest struct {
 	SeatId    int64 `json:"seat_id"`
 }
 
+// GetEventAnalyticsParams defines parameters for GetEventAnalytics.
+type GetEventAnalyticsParams struct {
+	// Id ID события для получения аналитики
+	Id int64 `form:"id" json:"id"`
+}
+
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
 	// Query Параметр для полноконтекстного поиска
@@ -159,6 +176,9 @@ type SelectSeatJSONRequestBody = SelectSeatRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Получить аналитику продаж для события
+	// (GET /api/analytics)
+	GetEventAnalytics(w http.ResponseWriter, r *http.Request, params GetEventAnalyticsParams)
 	// Получить список бронирований
 	// (GET /api/bookings)
 	ListBookings(w http.ResponseWriter, r *http.Request)
@@ -183,6 +203,9 @@ type ServerInterface interface {
 	// Уведомить сервис, что платеж успешно проведен
 	// (GET /api/payments/success)
 	NotifyPaymentCompleted(w http.ResponseWriter, r *http.Request, params NotifyPaymentCompletedParams)
+	// Сбросить базу данных
+	// (POST /api/reset)
+	ResetDatabase(w http.ResponseWriter, r *http.Request)
 	// Получить список мест
 	// (GET /api/seats)
 	ListSeats(w http.ResponseWriter, r *http.Request, params ListSeatsParams)
@@ -202,6 +225,40 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetEventAnalytics operation middleware
+func (siw *ServerInterfaceWrapper) GetEventAnalytics(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetEventAnalyticsParams
+
+	// ------------- Required query parameter "id" -------------
+
+	if paramValue := r.URL.Query().Get("id"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "id"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "id", r.URL.Query(), &params.Id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEventAnalytics(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListBookings operation middleware
 func (siw *ServerInterfaceWrapper) ListBookings(w http.ResponseWriter, r *http.Request) {
@@ -383,6 +440,20 @@ func (siw *ServerInterfaceWrapper) NotifyPaymentCompleted(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.NotifyPaymentCompleted(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResetDatabase operation middleware
+func (siw *ServerInterfaceWrapper) ResetDatabase(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResetDatabase(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -599,6 +670,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.HandleFunc(options.BaseURL+"/api/analytics", wrapper.GetEventAnalytics).Methods("GET")
+
 	r.HandleFunc(options.BaseURL+"/api/bookings", wrapper.ListBookings).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/api/bookings", wrapper.CreateBooking).Methods("POST")
@@ -614,6 +687,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/api/payments/notifications", wrapper.OnPaymentUpdates).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/api/payments/success", wrapper.NotifyPaymentCompleted).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/api/reset", wrapper.ResetDatabase).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/api/seats", wrapper.ListSeats).Methods("GET")
 

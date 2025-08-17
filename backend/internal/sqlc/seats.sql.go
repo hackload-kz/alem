@@ -7,8 +7,19 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 )
+
+const deleteAllSeats = `-- name: DeleteAllSeats :execresult
+;
+
+DELETE FROM seats
+`
+
+func (q *Queries) DeleteAllSeats(ctx context.Context) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteAllSeats)
+}
 
 const getSeatByID = `-- name: GetSeatByID :one
 ;
@@ -93,6 +104,32 @@ func (q *Queries) GetSeats(ctx context.Context, arg GetSeatsParams) ([]Seat, err
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertSeat = `-- name: InsertSeat :exec
+INSERT INTO seats (event_id, external_id, row, number, price, status)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+`
+
+type InsertSeatParams struct {
+	EventID    int64
+	ExternalID *string
+	Row        int64
+	Number     int64
+	Price      string
+	Status     string
+}
+
+func (q *Queries) InsertSeat(ctx context.Context, arg InsertSeatParams) error {
+	_, err := q.db.ExecContext(ctx, insertSeat,
+		arg.EventID,
+		arg.ExternalID,
+		arg.Row,
+		arg.Number,
+		arg.Price,
+		arg.Status,
+	)
+	return err
 }
 
 const updateSeatStatus = `-- name: UpdateSeatStatus :exec

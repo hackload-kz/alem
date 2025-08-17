@@ -1,6 +1,7 @@
 package ports
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"hackload/internal/middleware"
 	"hackload/internal/paymenttoken"
 	"hackload/internal/portriver"
+	"hackload/internal/service"
 	"hackload/internal/sqlc"
 	"hackload/pkg/paymentgateway"
 
@@ -25,15 +27,24 @@ type HttpServer struct {
 	db             *sql.DB
 	riverClient    *river.Client[*sql.Tx]
 	paymentGateway paymentgateway.ClientInterface
+	resetService   service.ResetService
 	config         *config.Config
 }
 
-func NewHttpServer(queries *sqlc.Queries, db *sql.DB, riverClient *river.Client[*sql.Tx], paymentGateway paymentgateway.ClientInterface, config *config.Config) ServerInterface {
+func NewHttpServer(
+	queries *sqlc.Queries,
+	db *sql.DB,
+	riverClient *river.Client[*sql.Tx],
+	paymentGateway paymentgateway.ClientInterface,
+	resetService service.ResetService,
+	config *config.Config,
+) ServerInterface {
 	return &HttpServer{
 		queries:        queries,
 		db:             db,
 		riverClient:    riverClient,
 		paymentGateway: paymentGateway,
+		resetService:   resetService,
 		config:         config,
 	}
 }
@@ -343,6 +354,9 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 		Description: stringPtr("Payment for booking " + strconv.FormatInt(req.BookingId, 10)),
 	}
 
+	pr, _ := json.Marshal(paymentReq)
+	fmt.Println(string(pr))
+
 	resp, err := s.paymentGateway.PostApiV1PaymentInitInit(r.Context(), paymentReq)
 	if err != nil {
 		fmt.Printf("ERROR: failed to init payment: %v\n", err)
@@ -350,17 +364,23 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if resp.StatusCode != 200 {
-		fmt.Printf("ERROR: payment gateway returned status: %d\n", resp.StatusCode)
-		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
-		return
-	}
+	b, _ := io.ReadAll(resp.Body)
+
+	resp.Body = io.NopCloser(bytes.NewBuffer(b))
 
 	// Parse payment response
 	var paymentResp paymentgateway.PaymentInitResponseDto
 	if err := json.NewDecoder(resp.Body).Decode(&paymentResp); err != nil {
 		fmt.Printf("ERROR: failed to decode payment response: %v\n", err)
 		http.Error(w, "Failed to process payment response", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("%#v\n", string(b))
+
+	if resp.StatusCode != 200 {
+		fmt.Printf("ERROR: payment gateway returned status: %d\n", resp.StatusCode)
+		http.Error(w, "Failed to initialize payment", http.StatusInternalServerError)
 		return
 	}
 
@@ -751,17 +771,72 @@ func (s *HttpServer) SelectSeat(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func AccessControlMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("hello")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type")
+// Получить аналитику продаж для события
+// (GET /api/analytics)
+func (s *HttpServer) GetEventAnalytics(w http.ResponseWriter, r *http.Request, params GetEventAnalyticsParams) {
+	ctx := r.Context()
 
-		if r.Method == "OPTIONS" {
-			return
-		}
+	// Validate required parameter
+	if params.Id == 0 {
+		http.Error(w, "Missing required parameter: id", http.StatusBadRequest)
+		return
+	}
 
-		next.ServeHTTP(w, r)
-	})
+	eventID := params.Id
+
+	// Get analytics data from database
+	analytics, err := s.queries.GetEventAnalytics(ctx, eventID)
+	if err != nil {
+		http.Error(w, "Failed to get event analytics", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert *float64 to int64, defaulting to 0 if null
+	soldSeats := int64(0)
+	if analytics.SoldSeats != nil {
+		soldSeats = int64(*analytics.SoldSeats)
+	}
+
+	reservedSeats := int64(0)
+	if analytics.ReservedSeats != nil {
+		reservedSeats = int64(*analytics.ReservedSeats)
+	}
+
+	freeSeats := int64(0)
+	if analytics.FreeSeats != nil {
+		freeSeats = int64(*analytics.FreeSeats)
+	}
+
+	// Convert total revenue to string with 2 decimal places
+	totalRevenue := fmt.Sprintf("%.2f", analytics.TotalRevenue)
+
+	// Prepare response
+	response := map[string]any{
+		"event_id":       eventID,
+		"total_seats":    analytics.TotalSeats,
+		"sold_seats":     soldSeats,
+		"reserved_seats": reservedSeats,
+		"free_seats":     freeSeats,
+		"total_revenue":  totalRevenue,
+		"bookings_count": analytics.BookingsCount,
+	}
+
+	// Set content type and send response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// Сбросить базу данных
+// (POST /api/reset)
+func (s *HttpServer) ResetDatabase(w http.ResponseWriter, r *http.Request) {
+	if err := s.resetService.Reset(r.Context()); err != nil {
+		fmt.Printf("ERROR: failed to reset: %v", err)
+		http.Error(w, "Could not reset", http.StatusInternalServerError)
+		return
+	}
 }
