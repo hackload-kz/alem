@@ -128,7 +128,7 @@ func main() {
 	// Now wrap specific routes with middleware
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/api/payments") || strings.HasPrefix(r.URL.Path, "/api/events") {
+			if strings.HasPrefix(r.URL.Path, "/api/payments") || strings.HasPrefix(r.URL.Path, "/api/events") || strings.HasPrefix(r.URL.Path, "/api/reset") {
 				next.ServeHTTP(w, r)
 				return
 			}
