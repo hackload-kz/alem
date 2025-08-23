@@ -56,6 +56,10 @@ func (s *authenticationService) GetSession(ctx context.Context, bearerToken stri
 		return nil, err
 	}
 
+	if !user.IsActive {
+		return nil, ErrUnauthorized
+	}
+
 	if user.PasswordPlain != nil && *user.PasswordPlain == password {
 		return &GetSessionResponse{
 			UserID: user.UserID,
