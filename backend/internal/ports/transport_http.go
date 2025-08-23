@@ -194,6 +194,11 @@ func (s *HttpServer) CancelBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if booking.UserID != session.UserID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	if booking.Status == "PAYMENT_INITIATED" || booking.Status == "CANCELLED" {
 		return
 	}
@@ -713,7 +718,7 @@ func (s *HttpServer) ReleaseSeat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if rowsAffected == 0 {
-		http.Error(w, "Seat not found in your bookings", 419)
+		http.Error(w, "Fobidden", http.StatusForbidden)
 		return
 	}
 
