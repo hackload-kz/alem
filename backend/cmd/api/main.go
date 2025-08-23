@@ -37,16 +37,24 @@ func main() {
 		return
 	}
 
+	var (
+		shutdownTelemetry func(context.Context) error
+	)
+	tel := telemetry.NewNull()
+	shutdownTelemetry = func(context.Context) error { return nil }
+
 	// Telemetry
-	tel, shutdownTelemetry, err := telemetry.New(ctx, &telemetry.Config{
-		Namespace:         conf.ServiceName,
-		Service:           conf.ServiceName,
-		Environment:       conf.Environment,
-		OtelCollectorAddr: conf.OtelCollectorAddr,
-	})
-	if err != nil {
-		slog.Error("unable to setup telemetry", "error", err)
-		return
+	if conf.TelemetryEnabled {
+		tel, shutdownTelemetry, err = telemetry.New(ctx, &telemetry.Config{
+			Namespace:         conf.ServiceName,
+			Service:           conf.ServiceName,
+			Environment:       conf.Environment,
+			OtelCollectorAddr: conf.OtelCollectorAddr,
+		})
+		if err != nil {
+			slog.Error("unable to setup telemetry", "error", err)
+			return
+		}
 	}
 
 	args := config.ParseArgs()
@@ -125,11 +133,13 @@ func main() {
 	// Now wrap specific routes with middleware
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !strings.HasPrefix(r.URL.Path, "/api/payments") {
-				middleware.AuthenticationMiddleware(deps.AuthenticationService)(next).ServeHTTP(w, r)
+			if strings.HasPrefix(r.URL.Path, "/api/payments") || strings.HasPrefix(r.URL.Path, "/api/events") || strings.HasPrefix(r.URL.Path, "/api/reset") {
+				next.ServeHTTP(w, r)
 				return
 			}
-			next.ServeHTTP(w, r)
+
+			middleware.AuthenticationMiddleware(deps.AuthenticationService)(next).ServeHTTP(w, r)
+
 		})
 	})
 
