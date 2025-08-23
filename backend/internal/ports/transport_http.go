@@ -135,20 +135,20 @@ func (s *HttpServer) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statusEq := "CREATED"
+	// statusEq := "CREATED"
 
-	if _, err = s.riverClient.Insert(
-		r.Context(),
-		portriver.ReleaseSeatsArgs{
-			BookingID: bookingID,
-			StatusEq:  &statusEq,
-		},
-		&river.InsertOpts{ScheduledAt: time.Now().UTC().Add(10 * time.Minute)},
-	); err != nil {
-		fmt.Println("ERROR: s.riverClient.Insert:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
+	// if _, err = s.riverClient.Insert(
+	// 	r.Context(),
+	// 	portriver.ReleaseSeatsArgs{
+	// 		BookingID: bookingID,
+	// 		StatusEq:  &statusEq,
+	// 	},
+	// 	&river.InsertOpts{ScheduledAt: time.Now().UTC().Add(10 * time.Minute)},
+	// ); err != nil {
+	// 	fmt.Println("ERROR: s.riverClient.Insert:", err)
+	// 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	response := CreateBookingResponse{
 		Id: bookingID,
