@@ -9,6 +9,8 @@ import (
 
 	"hackload/internal/sqlc"
 	"hackload/pkg/eventprovider"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 type ResetService interface {
@@ -89,28 +91,45 @@ func (s *resetService) Reset(ctx context.Context) error {
 	// 3. Insert places as seats into database
 	slog.Info("inserting places as seats")
 
-	for seatIndex, place := range allPlaces {
-		status := "FREE"
-		if !place.IsFree {
-			status = "RESERVED"
+	// Insert in chunks to avoid SQL parameter limit
+	const chunkSize = 1000 // SQLite can handle ~32768 parameters, with 6 columns = ~5000 rows max
+	totalChunks := (len(allPlaces) + chunkSize - 1) / chunkSize
+
+	for chunkIndex := range totalChunks {
+		start := chunkIndex * chunkSize
+		end := min(start+chunkSize, len(allPlaces))
+
+		chunk := allPlaces[start:end]
+		slog.Info("inserting chunk", "chunk", chunkIndex+1, "total_chunks", totalChunks, "size", len(chunk))
+
+		// Build batch insert query for this chunk
+		insertQuery := sq.Insert("seats").Columns("event_id", "external_id", "row", "number", "price", "status")
+
+		for _, place := range chunk {
+			status := "FREE"
+			if !place.IsFree {
+				status = "RESERVED"
+			}
+
+			// Calculate price based on seat position (row * 1000 + seat number)
+			price := calculateSeatPrice(place.Row, place.Seat)
+
+			// Note: We need an event_id, but since this is a preloader and no specific event is mentioned,
+			// we'll use event_id = 1. In a real scenario, this should be parameterized.
+			externalID := place.Id.String()
+			insertQuery = insertQuery.Values(1, externalID, int64(place.Row), int64(place.Seat), price, status)
 		}
 
-		// Calculate price based on seat index
-		price := calculateSeatPrice(seatIndex)
-
-		// Note: We need an event_id, but since this is a preloader and no specific event is mentioned,
-		// we'll use event_id = 1. In a real scenario, this should be parameterized.
-		externalID := place.Id.String()
-		err := txQueries.InsertSeat(ctx, sqlc.InsertSeatParams{
-			EventID:    1, // Default event ID - should be parameterized in production
-			ExternalID: &externalID,
-			Row:        int64(place.Row),
-			Number:     int64(place.Seat),
-			Price:      price,
-			Status:     status,
-		})
+		// Execute batch insert for this chunk
+		sql, args, err := insertQuery.ToSql()
 		if err != nil {
-			slog.Error("unable to insert seat", "place_id", place.Id, "error", err)
+			slog.Error("unable to build batch insert query", "chunk", chunkIndex+1, "error", err)
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, sql, args...)
+		if err != nil {
+			slog.Error("unable to execute batch insert", "chunk", chunkIndex+1, "error", err)
 			return err
 		}
 	}
@@ -125,15 +144,17 @@ func (s *resetService) Reset(ctx context.Context) error {
 	return nil
 }
 
-func calculateSeatPrice(seatIndex int) string {
+func calculateSeatPrice(row, seat int) string {
+	// Calculate seat index based on row and seat number (each row has 1000 seats)
+	seatIndex := row*1000 + seat
 	switch {
-	case seatIndex < 10000: // 0-9,999: Золотой круг
+	case seatIndex <= 10000: // 0-9,999: Золотой круг
 		return "40000.00"
-	case seatIndex < 25000: // 10,000-24,999: Фан-зона
+	case seatIndex <= 25000: // 10,000-24,999: Фан-зона
 		return "80000.00"
-	case seatIndex < 45000: // 25,000-44,999: Нижний ярус
+	case seatIndex <= 45000: // 25,000-44,999: Нижний ярус
 		return "120000.00"
-	case seatIndex < 70000: // 45,000-69,999: Средний ярус
+	case seatIndex <= 70000: // 45,000-69,999: Средний ярус
 		return "160000.00"
 	default: // 70,000+: Верхний ярус
 		return "200000.00"
