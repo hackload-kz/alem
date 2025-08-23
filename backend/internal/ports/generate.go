@@ -1,3 +1,3 @@
 package ports
 
-//go:generate oapi-codegen --config=oapi-codegen.yaml openapi.json
+//go:generate oapi-codegen --config=oapi_codegen.yaml openapi.json
