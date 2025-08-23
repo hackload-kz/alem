@@ -53,7 +53,7 @@ func (s *authenticationService) GetSession(ctx context.Context, bearerToken stri
 		if err == sql.ErrNoRows {
 			return nil, ErrUnauthorized
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get user from database: %w", err)
 	}
 
 	if !user.IsActive {
