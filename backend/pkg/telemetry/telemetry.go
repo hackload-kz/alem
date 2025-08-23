@@ -20,8 +20,20 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
+type Config struct {
+	Service           string
+	Namespace         string
+	Version           string
+	Environment       string
+	OtelCollectorAddr string
+}
+
 var (
 	globalTelemetry = NewNull()
+
+	// GenerateInstanceID how to generate instanceID
+	// function open for changes
+	instanceGenerator = genInstanceID
 )
 
 func Global() Telemetry {
@@ -35,7 +47,6 @@ func SetGlobal(t Telemetry) {
 type Telemetry struct {
 	trace         trace.Tracer
 	traceProvider trace.TracerProvider
-	// metricProvider metric.MeterProvider
 }
 
 func NewNull() Telemetry {
@@ -45,8 +56,6 @@ func NewNull() Telemetry {
 	}
 }
 
-// setupOTelSDK bootstraps the OpenTelemetry pipeline.
-// If it does not return an error, make sure to call shutdown for proper cleanup.
 func New(ctx context.Context, cfg *Config) (tel Telemetry, shutdown func(context.Context) error, err error) {
 	var shutdownFuncs []func(context.Context) error
 
@@ -87,25 +96,6 @@ func New(ctx context.Context, cfg *Config) (tel Telemetry, shutdown func(context
 
 	SetGlobal(tel)
 
-	// // Set up meter provider.
-	// meterProvider, err := newMeterProvider()
-	// if err != nil {
-	// 	handleErr(err)
-	// 	return
-	// }
-	// shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
-	// otel.SetMeterProvider(meterProvider)
-
-	// // Set up logger provider.
-	// loggerProvider, err := newLoggerProvider()
-	// if err != nil {
-	// 	handleErr(err)
-	// 	return
-	// }
-	// shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
-	// global.SetLoggerProvider(loggerProvider)
-	// global.GetLoggerProvider().Logger("example").
-
 	return
 }
 
@@ -117,12 +107,6 @@ func newPropagator() propagation.TextMapPropagator {
 }
 
 func newTracerProvider(res *resource.Resource, cfg *Config) (*sdktrace.TracerProvider, error) {
-	// traceExporter, err := stdouttrace.New(
-	// 	stdouttrace.WithPrettyPrint())
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	traceExporter, err := otlptrace.New(
 		context.Background(),
 		otlptracegrpc.NewClient(
@@ -143,44 +127,6 @@ func newTracerProvider(res *resource.Resource, cfg *Config) (*sdktrace.TracerPro
 	)
 	return tracerProvider, nil
 }
-
-// func newMeterProvider() (*metric.MeterProvider, error) {
-// 	metricExporter, err := stdoutmetric.New()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	meterProvider := metric.NewMeterProvider(
-// 		metric.WithReader(metric.NewPeriodicReader(metricExporter,
-// 			// Default is 1m. Set to 3s for demonstrative purposes.
-// 			metric.WithInterval(3*time.Second))),
-// 	)
-// 	return meterProvider, nil
-// }
-
-// func newLoggerProvider() (*sdklog.LoggerProvider, error) {
-// 	logExporter, err := stdoutlog.New()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	loggerProvider := sdklog.NewLoggerProvider(
-// 		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
-// 	)
-// 	return loggerProvider, nil
-// }
-
-type Config struct {
-	Service           string
-	Namespace         string
-	Version           string
-	Environment       string
-	OtelCollectorAddr string
-}
-
-// GenerateInstanceID how to generate instanceID
-// function open for changes
-var instanceGenerator = genInstanceID
 
 func genInstanceID(srv string) string {
 	instSID := make([]byte, 4)
