@@ -100,7 +100,7 @@ func (w *CancelBookingWorker) Work(ctx context.Context, job *river.Job[CancelBoo
 			return fmt.Errorf("failed to release place: %w", err)
 		}
 
-		if releaseResp.StatusCode != 200 {
+		if releaseResp.StatusCode > 299 {
 			return fmt.Errorf("failed to release place, status: %d", releaseResp.StatusCode)
 		}
 	}
@@ -112,7 +112,7 @@ func (w *CancelBookingWorker) Work(ctx context.Context, job *river.Job[CancelBoo
 			return fmt.Errorf("failed to cancel order: %w", err)
 		}
 
-		if cancelResp.StatusCode != 200 {
+		if cancelResp.StatusCode > 299 {
 			return fmt.Errorf("failed to cancel order, status: %d", cancelResp.StatusCode)
 		}
 

@@ -88,7 +88,7 @@ func (w *RefundPaymentWorker) Work(ctx context.Context, job *river.Job[RefundPay
 		return fmt.Errorf("failed to cancel payment: %w", err)
 	}
 
-	if cancelResp.StatusCode != 200 {
+	if cancelResp.StatusCode > 299 {
 		return fmt.Errorf("failed to cancel payment, status: %d", cancelResp.StatusCode)
 	}
 
