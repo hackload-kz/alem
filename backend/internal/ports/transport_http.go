@@ -558,6 +558,9 @@ func (s *HttpServer) OnPaymentUpdates(w http.ResponseWriter, r *http.Request) {
 // Уведомить сервис, что платеж успешно проведен
 // (GET /api/payments/success)
 func (s *HttpServer) NotifyPaymentCompleted(w http.ResponseWriter, r *http.Request, params NotifyPaymentCompletedParams) {
+	fmt.Println(1)
+	return
+
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		http.Error(w, "Could not start transaction", http.StatusInternalServerError)

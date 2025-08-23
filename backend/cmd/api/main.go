@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -112,11 +113,20 @@ func main() {
 			deps.ResetService,
 			conf,
 		), ports.GorillaServerOptions{
-			BaseRouter: router,
-			Middlewares: []ports.MiddlewareFunc{
-				middleware.AuthenticationMiddleware(deps.AuthenticationService),
-			},
+			BaseRouter:  router,
+			Middlewares: []ports.MiddlewareFunc{},
 		})
+
+	// Now wrap specific routes with middleware
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !strings.HasPrefix(r.URL.Path, "/api/payments") {
+				middleware.AuthenticationMiddleware(deps.AuthenticationService)(next).ServeHTTP(w, r)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	//////////////
 
