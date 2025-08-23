@@ -13,6 +13,12 @@ tasks:
     ignore_error: true
     cmd: go run ./cmd/preloader
 
+  k6:check-authorizations:
+    cmd: k6 run -e API_URL=http://localhost:8080 ./scripts/k6/check-authorizations.js
+
+  k6:booking:
+    cmd: k6 run -e API_URL=http://localhost:8080 ./scripts/k6/booking.js
+
   migrate:create:
     desc: |
       Создание новой миграции (usage: task migrate:create -- название_миграции)
