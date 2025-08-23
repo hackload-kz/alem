@@ -1,23 +1,23 @@
 services:
-  hackload:
-    build: .
-    network_mode: "host"
-    environment:
-      - SQLITE3_PATH=./api_data/db.sqlite3
-      - RIVER_SQLITE3_PATH=./river_data/db.sqlite3
-      - SERVICE_NAME=booking
-    env_file: .env
-    # .env contains:
-    # - API_ADDR
-    # - EVENT_PROVIDER_ADDR
-    # - PAYMENT_PROVIDER_ADDR
-    # - PAYMENT_PROVIDER_MERCHANT_PASSWORD
-    # - PAYMENT_PROVIDER_MERCHANT_ID
-    ports:
-      - "8081:8081"
-    volumes:
-      - ./api_data:/app/api_data
-      - ./river_data:/app/river_data
+  # hackload:
+  #   build: .
+  #   network_mode: "host"
+  #   environment:
+  #     - SQLITE3_PATH=./api_data/db.sqlite3
+  #     - RIVER_SQLITE3_PATH=./river_data/db.sqlite3
+  #     - SERVICE_NAME=booking
+  #   env_file: .env
+  #   # .env contains:
+  #   # - API_ADDR
+  #   # - EVENT_PROVIDER_ADDR
+  #   # - PAYMENT_PROVIDER_ADDR
+  #   # - PAYMENT_PROVIDER_MERCHANT_PASSWORD
+  #   # - PAYMENT_PROVIDER_MERCHANT_ID
+  #   ports:
+  #     - "8081:8081"
+  #   volumes:
+  #     - ./api_data:/app/api_data
+  #     - ./river_data:/app/river_data
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     command: ["--config=/etc/otel-collector-config.yaml"]
@@ -31,9 +31,3 @@ services:
       - "6831:6831/udp" # UDP port for Jaeger agent
       - "16686:16686" # Web UI
       - "14268:14268" # HTTP port for spans
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   volumes:
-  #     - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml
-  #   ports:
-  #     - "9090:9090"
