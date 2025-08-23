@@ -42,6 +42,12 @@ select * from bookings
 where id = sqlc.arg(booking_id)
 ;
 
+-- name: GetBookingByIDAndUserID :one
+select * from bookings 
+where id = sqlc.arg(booking_id)
+  and user_id = sqlc.arg(user_id)
+;
+
 -- name: GetBookingSeats :many
 select seat_id from booking_seats
 where booking_id = sqlc.arg(booking_id)

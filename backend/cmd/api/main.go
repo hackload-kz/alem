@@ -149,9 +149,9 @@ func main() {
 
 	server := &http.Server{
 		Handler: handlers.CORS(
-			handlers.AllowedHeaders([]string{"Authorization"}),
+			handlers.AllowedHeaders([]string{"Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"}),
 			handlers.AllowedOrigins([]string{"*"}),
-			handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"}),
+			handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS", "PATCH", "DELETE"}),
 		)(router),
 		Addr: fmt.Sprintf(":%s", conf.API.Port),
 	}
