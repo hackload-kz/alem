@@ -13,7 +13,7 @@ create table "users" (
 
 CREATE INDEX idx_users_email ON users(email);
 
-create table "events_archive" (
+CREATE TABLE "events_archive" (
     "id" integer primary key,
     "title" text,
     "description" text,

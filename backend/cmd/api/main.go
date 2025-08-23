@@ -19,6 +19,7 @@ import (
 	"hackload/internal/ports"
 	"hackload/internal/sqlc"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/riverqueue/river"
 	"golang.org/x/sync/errgroup"
@@ -104,8 +105,12 @@ func main() {
 	// Setup server
 
 	server := &http.Server{
-		Handler: router,
-		Addr:    fmt.Sprintf(":%s", conf.API.Port),
+		Handler: handlers.CORS(
+			handlers.AllowedHeaders([]string{"Authorization"}),
+			handlers.AllowedOrigins([]string{"*"}),
+			handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"}),
+		)(router),
+		Addr: fmt.Sprintf(":%s", conf.API.Port),
 	}
 
 	mainCtx, cancel := context.WithCancel(context.Background())
