@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
+	"sync"
 
 	"hackload/internal/sqlc"
 	"hackload/pkg/eventprovider"
@@ -32,42 +34,10 @@ func NewResetService(
 }
 
 func (s *resetService) Reset(ctx context.Context) error {
-	// Get all places from EventProvider by paginating
-	var allPlaces []eventprovider.Place
-	page := 1
-	pageSize := 1000
-
-	for {
-		placesResp, err := s.eventProviderWithResponses.ListPlacesWithResponse(ctx, &eventprovider.ListPlacesParams{
-			Page:     &page,
-			PageSize: &pageSize,
-		})
-		if err != nil {
-			slog.Error("unable to get places", "error", err, "page", page)
-			return err
-		}
-
-		if placesResp.StatusCode() != 200 {
-			slog.Error("bad response from event provider", "status", placesResp.StatusCode(), "page", page)
-			return err
-		}
-
-		if placesResp.JSON200 == nil {
-			slog.Error("no places data in response", "page", page)
-			return err
-		}
-
-		places := *placesResp.JSON200
-		allPlaces = append(allPlaces, places...)
-
-		slog.Info("fetched places page", "page", page, "count", len(places))
-
-		// Stop if we got less than the page size (last page) or no places
-		if len(places) < pageSize || len(places) == 0 {
-			break
-		}
-
-		page++
+	allPlaces, err := s.fetchPlacesParallel(ctx)
+	if err != nil {
+		slog.Error("unable to get places", "error", err)
+		return err
 	}
 
 	slog.Info("starting preloader process")
@@ -168,4 +138,122 @@ func calculateSeatPrice(seatIndex int) string {
 	default: // 70,000+: Верхний ярус
 		return "200000.00"
 	}
+}
+
+// fetchPlacesParallel fetches exactly 100 pages using 6 goroutines in parallel
+func (s *resetService) fetchPlacesParallel(ctx context.Context) ([]eventprovider.Place, error) {
+	var (
+		numWorkers = 5
+		totalPages = 100
+		pageSize   = 1000
+	)
+
+	// Calculate pages per worker
+	pagesPerWorker := totalPages / numWorkers
+	remainingPages := totalPages % numWorkers
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var allPlaces []eventprovider.Place
+	var globalErr error
+
+	for workerID := 0; workerID < numWorkers; workerID++ {
+		wg.Add(1)
+
+		go func(id int) {
+			defer wg.Done()
+
+			// Calculate page range for this worker
+			// First 'remainingPages' workers get an extra page
+			var startPage, endPage int
+
+			if id < remainingPages {
+				// Workers 0-3 get 17 pages each (16 base + 1 extra)
+				startPage = id*(pagesPerWorker+1) + 1
+				endPage = startPage + pagesPerWorker
+			} else {
+				// Workers 4-5 get 16 pages each
+				startPage = remainingPages*(pagesPerWorker+1) + (id-remainingPages)*pagesPerWorker + 1
+				endPage = startPage + pagesPerWorker - 1
+			}
+
+			// Worker distribution:
+			// Worker 0: pages 1-17   (17 pages)
+			// Worker 1: pages 18-34  (17 pages)
+			// Worker 2: pages 35-51  (17 pages)
+			// Worker 3: pages 52-68  (17 pages)
+			// Worker 4: pages 69-84  (16 pages)
+			// Worker 5: pages 85-100 (16 pages)
+
+			workerPlaces := []eventprovider.Place{}
+
+			for page := startPage; page <= endPage; page++ {
+				// Check if another worker encountered an error
+				mu.Lock()
+				if globalErr != nil {
+					mu.Unlock()
+					return
+				}
+				mu.Unlock()
+
+				slog.Info("worker fetching page", "worker", id, "page", page)
+
+				placesResp, err := s.eventProviderWithResponses.ListPlacesWithResponse(ctx, &eventprovider.ListPlacesParams{
+					Page:     &page,
+					PageSize: &pageSize,
+				})
+				if err != nil {
+					slog.Error("unable to get places", "worker", id, "error", err, "page", page)
+					mu.Lock()
+					if globalErr == nil {
+						globalErr = fmt.Errorf("worker %d failed on page %d: %w", id, page, err)
+					}
+					mu.Unlock()
+					return
+				}
+
+				if placesResp.StatusCode() != 200 {
+					slog.Error("bad response from event provider", "worker", id, "status", placesResp.StatusCode(), "page", page)
+					mu.Lock()
+					if globalErr == nil {
+						globalErr = fmt.Errorf("worker %d got status %d on page %d", id, placesResp.StatusCode(), page)
+					}
+					mu.Unlock()
+					return
+				}
+
+				if placesResp.JSON200 == nil {
+					slog.Error("no places data in response", "worker", id, "page", page)
+					mu.Lock()
+					if globalErr == nil {
+						globalErr = fmt.Errorf("worker %d got no data on page %d", id, page)
+					}
+					mu.Unlock()
+					return
+				}
+
+				places := *placesResp.JSON200
+				workerPlaces = append(workerPlaces, places...)
+
+				slog.Info("worker fetched places page", "worker", id, "page", page, "count", len(places))
+			}
+
+			// Add this worker's places to the global slice
+			mu.Lock()
+			allPlaces = append(allPlaces, workerPlaces...)
+			mu.Unlock()
+
+			slog.Info("worker completed", "worker", id, "pages", fmt.Sprintf("%d-%d", startPage, endPage), "places", len(workerPlaces))
+		}(workerID)
+	}
+
+	// Wait for all workers to complete
+	wg.Wait()
+
+	if globalErr != nil {
+		return nil, globalErr
+	}
+
+	slog.Info("fetched all places", "total", len(allPlaces))
+	return allPlaces, nil
 }
