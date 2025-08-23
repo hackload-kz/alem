@@ -77,8 +77,8 @@ func WithDB(conf *config.Config) Option {
 		}
 
 		// 2. Configure connection pool for better concurrency
-		db.SetMaxOpenConns(10)   // Limit concurrent connections
-		db.SetMaxIdleConns(5)    // Keep connections alive
+		db.SetMaxOpenConns(32)   // Limit concurrent connections
+		db.SetMaxIdleConns(32)   // Keep connections alive
 		db.SetConnMaxLifetime(0) // No connection expiry (long-lived connections)
 		db.SetConnMaxIdleTime(0) // No idle timeout
 
