@@ -18,8 +18,11 @@ import (
 	"hackload/internal/service"
 	"hackload/internal/sqlc"
 	"hackload/pkg/paymentgateway"
+	"hackload/pkg/telemetry"
 
 	"github.com/riverqueue/river"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type HttpServer struct {
@@ -431,6 +434,14 @@ func (s *HttpServer) InitiatePayment(w http.ResponseWriter, r *http.Request) {
 // Получить список событий
 // (GET /api/events)
 func (s *HttpServer) ListEvents(w http.ResponseWriter, r *http.Request, params ListEventsParams) {
+	ctx, tr := telemetry.Global().T().Start(r.Context(), "ListEvents")
+	defer tr.End()
+
+	tr.AddEvent("ListEvents called", trace.WithAttributes(
+		attribute.String("http.method", r.Method),
+		attribute.String("http.url", r.URL.String()),
+	))
+
 	page := int64(1)
 	pageSize := int64(10)
 
@@ -449,7 +460,7 @@ func (s *HttpServer) ListEvents(w http.ResponseWriter, r *http.Request, params L
 		dateStr = &dateString
 	}
 
-	events, err := s.queries.GetEventsList(r.Context(), sqlc.GetEventsListParams{
+	events, err := s.queries.GetEventsList(ctx, sqlc.GetEventsListParams{
 		Query:  params.Query,
 		Date:   dateStr,
 		Offset: offset,

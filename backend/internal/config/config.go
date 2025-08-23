@@ -7,7 +7,11 @@ import (
 )
 
 type Config struct {
-	SQLite3Path string `env:"SQLITE3_PATH"`
+	Namespace         string `env:"NAMESPACE, default=alem"`
+	Environment       string `env:"ENVIRONMENT, default=dev"`
+	ServiceName       string `env:"SERVICE_NAME, default=booking"`
+	OtelCollectorAddr string `env:"OTEL_COLLECTOR_ADDR, default=localhost:4317"`
+	SQLite3Path       string `env:"SQLITE3_PATH"`
 
 	// River
 	River struct {

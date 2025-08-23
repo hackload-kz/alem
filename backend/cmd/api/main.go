@@ -19,10 +19,12 @@ import (
 	"hackload/internal/portriver"
 	"hackload/internal/ports"
 	"hackload/internal/sqlc"
+	"hackload/pkg/telemetry"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/riverqueue/river"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -32,6 +34,18 @@ func main() {
 	conf, err := config.GetConfig(ctx)
 	if err != nil {
 		slog.Error("unable to get config", "error", err)
+		return
+	}
+
+	// Telemetry
+	tel, shutdownTelemetry, err := telemetry.New(ctx, &telemetry.Config{
+		Namespace:         conf.ServiceName,
+		Service:           conf.ServiceName,
+		Environment:       conf.Environment,
+		OtelCollectorAddr: conf.OtelCollectorAddr,
+	})
+	if err != nil {
+		slog.Error("unable to setup telemetry", "error", err)
 		return
 	}
 
@@ -85,6 +99,10 @@ func main() {
 	}
 
 	router := mux.NewRouter()
+	router.Use(otelmux.Middleware(
+		conf.ServiceName,
+		otelmux.WithTracerProvider(tel.TraceProvider()),
+	))
 
 	ports.HandlerWithOptions(
 		ports.NewHttpServer(
@@ -153,6 +171,19 @@ func main() {
 		case <-gCtx.Done():
 			return gCtx.Err()
 		}
+	})
+
+	g.Go(func() error {
+		<-gCtx.Done()
+		slog.Info("shutting down telemetry")
+		shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownRelease()
+
+		if err := shutdownTelemetry(shutdownCtx); err != nil {
+			return fmt.Errorf("telemetry shutdown failed: %w", err)
+		}
+
+		return nil
 	})
 
 	// HTTP Server shutdown handler goroutine

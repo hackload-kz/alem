@@ -3,7 +3,7 @@ set -euo pipefail
 
 
 # API_ADDR="https://alem.hub.hackload.kz"
-API_ADDR="http://localhost:8080"
+API_ADDR="http://localhost:8081"
 AUTH_HEADER="Authorization: Basic YXlzdWx0YW5fdGFsZ2F0XzFAZmVzdC50aXg6LzhlQyRBRD4="
 
 BOOKING_ID="5"
