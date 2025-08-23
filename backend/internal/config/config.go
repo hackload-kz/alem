@@ -12,6 +12,7 @@ type Config struct {
 	ServiceName       string `env:"SERVICE_NAME, default=booking"`
 	OtelCollectorAddr string `env:"OTEL_COLLECTOR_ADDR, default=localhost:4317"`
 	SQLite3Path       string `env:"SQLITE3_PATH"`
+	TelemetryEnabled  bool   `env:"TELEMETRY_ENABLED, default=false"`
 
 	// River
 	River struct {

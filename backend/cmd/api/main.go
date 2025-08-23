@@ -37,16 +37,24 @@ func main() {
 		return
 	}
 
+	var (
+		shutdownTelemetry func(context.Context) error
+	)
+	tel := telemetry.NewNull()
+	shutdownTelemetry = func(context.Context) error { return nil }
+
 	// Telemetry
-	tel, shutdownTelemetry, err := telemetry.New(ctx, &telemetry.Config{
-		Namespace:         conf.ServiceName,
-		Service:           conf.ServiceName,
-		Environment:       conf.Environment,
-		OtelCollectorAddr: conf.OtelCollectorAddr,
-	})
-	if err != nil {
-		slog.Error("unable to setup telemetry", "error", err)
-		return
+	if conf.TelemetryEnabled {
+		tel, shutdownTelemetry, err = telemetry.New(ctx, &telemetry.Config{
+			Namespace:         conf.ServiceName,
+			Service:           conf.ServiceName,
+			Environment:       conf.Environment,
+			OtelCollectorAddr: conf.OtelCollectorAddr,
+		})
+		if err != nil {
+			slog.Error("unable to setup telemetry", "error", err)
+			return
+		}
 	}
 
 	args := config.ParseArgs()
