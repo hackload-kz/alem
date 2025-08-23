@@ -15,6 +15,8 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riversqlite"
 	"github.com/riverqueue/river/rivermigrate"
+	"github.com/uptrace/opentelemetry-go-extra/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
 type Dependencies struct {
@@ -66,7 +68,10 @@ func WithDB(conf *config.Config) Option {
 		// 1. Use optimized connection string with shared cache and WAL mode
 		dsn := conf.SQLite3Path + "?cache=shared&mode=rwc&_journal_mode=WAL&_synchronous=NORMAL&_cache_size=-64000&_foreign_keys=1"
 
-		db, err := sql.Open("sqlite3", dsn)
+		db, err := otelsql.Open("sqlite3", dsn,
+			otelsql.WithAttributes(semconv.DBSystemSqlite),
+			otelsql.WithDBName(conf.SQLite3Path),
+		)
 		if err != nil {
 			return err
 		}

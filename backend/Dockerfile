@@ -19,14 +19,14 @@ COPY $BACKEND_PATH/pkg ./pkg
 
 WORKDIR /app/cmd/$CMD
 RUN --mount=type=cache,target="/root/.cache/go-build" \
-    go build -ldflags="-s -w" -o main .
+    go build -tags "sqlite_fts5" -ldflags="-s -w" -o main .
 
 # Основной шаг
 FROM debian:bookworm-slim
 
 RUN apt-get update && \
     apt-get install -y \
-        curl
+    curl
 
 ARG BACKEND_PATH=.
 ARG CMD=api

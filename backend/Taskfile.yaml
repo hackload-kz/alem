@@ -6,7 +6,7 @@ tasks:
   cmd:api:
     desc: Запуск API
     ignore_error: true
-    cmd: go run ./cmd/api -m ./migrations
+    cmd: go run -tags "sqlite_fts5" ./cmd/api -m ./migrations
   
   cmd:preloader:
     desc: Запуск предзагрузщика места
