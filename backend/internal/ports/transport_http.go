@@ -563,9 +563,6 @@ func (s *HttpServer) OnPaymentUpdates(w http.ResponseWriter, r *http.Request) {
 // Уведомить сервис, что платеж успешно проведен
 // (GET /api/payments/success)
 func (s *HttpServer) NotifyPaymentCompleted(w http.ResponseWriter, r *http.Request, params NotifyPaymentCompletedParams) {
-	fmt.Println(1)
-	return
-
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		http.Error(w, "Could not start transaction", http.StatusInternalServerError)
@@ -612,7 +609,7 @@ func (s *HttpServer) NotifyPaymentCompleted(w http.ResponseWriter, r *http.Reque
 	}
 
 	// 4. Trigger ConfirmBookingWorker to handle EventProvider confirmation and seat updates
-	if _, err = s.riverClient.Insert(r.Context(), portriver.ConfirmBookingArgs{
+	if _, err = s.riverClient.Insert(r.Context(), portriver.SelectSeatsArgs{
 		BookingID: booking.ID,
 	}, nil); err != nil {
 		fmt.Printf("ERROR: failed to queue ConfirmBookingWorker: %v\n", err)

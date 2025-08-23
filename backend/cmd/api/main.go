@@ -88,7 +88,12 @@ func main() {
 
 	river.AddWorker(
 		deps.RiverWorkers,
-		portriver.NewConfirmBookingWorker(queries, deps.DB, deps.EventProvider),
+		portriver.NewSelectSeatsWorker(queries, deps.DB, deps.RiverClient, deps.EventProvider),
+	)
+
+	river.AddWorker(
+		deps.RiverWorkers,
+		portriver.NewConfirmOrderWorker(queries, deps.DB, deps.EventProvider),
 	)
 
 	river.AddWorker(

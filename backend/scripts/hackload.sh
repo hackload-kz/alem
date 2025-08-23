@@ -6,8 +6,8 @@ set -euo pipefail
 API_ADDR="http://localhost:8080"
 AUTH_HEADER="Authorization: Basic YXlzdWx0YW5fdGFsZ2F0XzFAZmVzdC50aXg6LzhlQyRBRD4="
 
-BOOKING_ID="5"
-SEAT_ID="200002"
+BOOKING_ID="1"
+SEAT_ID="1"
 
 set -x
 
@@ -21,4 +21,4 @@ set -x
 # curl  -s -vvv -H "$AUTH_HEADER" -X PATCH -d "{\"seat_id\":$SEAT_ID}" "$API_ADDR/api/seats/release"
 # curl  -s -vvv -H "$AUTH_HEADER" -X PATCH -d "{\"booking_id\":$BOOKING_ID}" "$API_ADDR/api/bookings/initiatePayment"
 
-# curl -X GET "https://sunny-reasonably-shepherd.ngrok-free.app/api/payments/success?orderId=1755943241054941000"
+# curl -X GET "https://sunny-reasonably-shepherd.ngrok-free.app/api/payments/success?orderId=1755957658060698000"
